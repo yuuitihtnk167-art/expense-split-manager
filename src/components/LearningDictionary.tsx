@@ -8,6 +8,16 @@ type LearningDictionaryProps = {
 };
 
 export function LearningDictionary({ candidates, onDelete }: LearningDictionaryProps) {
+  function handleDeleteClick(candidate: LearningCandidate): void {
+    const confirmed = window.confirm(
+      `${candidate.receiptItemName}の学習候補を削除します。よろしいですか？`,
+    );
+
+    if (confirmed) {
+      onDelete(candidate.id);
+    }
+  }
+
   return (
     <section className="screen">
       <div className="screen-heading">
@@ -49,7 +59,7 @@ export function LearningDictionary({ candidates, onDelete }: LearningDictionaryP
               <button
                 type="button"
                 className="danger-button"
-                onClick={() => onDelete(candidate.id)}
+                onClick={() => handleDeleteClick(candidate)}
               >
                 削除
               </button>

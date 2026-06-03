@@ -107,6 +107,15 @@ function App() {
     });
   }
 
+  function handleDeleteProduct(productId: string): void {
+    updateData({
+      ...data,
+      productEntries: data.productEntries.filter((product) => product.id !== productId),
+      splitSettings: data.splitSettings.filter((setting) => setting.productEntryId !== productId),
+      splitPlans: data.splitPlans.filter((plan) => plan.productEntryId !== productId),
+    });
+  }
+
   function handleDeleteLearningCandidate(candidateId: string): void {
     updateData({
       ...data,
@@ -153,7 +162,11 @@ function App() {
         )}
 
         {activeTab === "products" && (
-          <ProductList products={data.productEntries} splitSettings={data.splitSettings} />
+          <ProductList
+            products={data.productEntries}
+            splitSettings={data.splitSettings}
+            onDeleteProduct={handleDeleteProduct}
+          />
         )}
 
         {activeTab === "dictionary" && (

@@ -5,12 +5,23 @@ import { formatMoney } from "../utils/money";
 type ProductListProps = {
   products: ProductEntry[];
   splitSettings: SplitSetting[];
+  onDeleteProduct: (productId: string) => void;
 };
 
-export function ProductList({ products, splitSettings }: ProductListProps) {
+export function ProductList({ products, splitSettings, onDeleteProduct }: ProductListProps) {
   const settingsByProductId = new Map(
     splitSettings.map((setting) => [setting.productEntryId, setting]),
   );
+
+  function handleDeleteClick(product: ProductEntry): void {
+    const confirmed = window.confirm(
+      `${product.officialItemName}を削除します。\n紐づく分割入力予定も一緒に削除されます。よろしいですか？`,
+    );
+
+    if (confirmed) {
+      onDeleteProduct(product.id);
+    }
+  }
 
   return (
     <section className="screen">
@@ -59,6 +70,13 @@ export function ProductList({ products, splitSettings }: ProductListProps) {
                     </div>
                   )}
                 </dl>
+                <button
+                  type="button"
+                  className="danger-button"
+                  onClick={() => handleDeleteClick(product)}
+                >
+                  削除
+                </button>
               </article>
             );
           })}
