@@ -14,15 +14,19 @@ export function DataManagement({ data, onImportData }: DataManagementProps) {
   const totalCandidates = data.learningCandidates.length;
 
   function handleExport(): void {
+    const filename = `receipt-split-manager-backup-${createTimestamp()}.json`;
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
+
     anchor.href = url;
-    anchor.download = `receipt-split-manager-backup-${createTimestamp()}.json`;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
     anchor.click();
-    URL.revokeObjectURL(url);
-    setMessage("バックアップJSONを作成しました。");
+    document.body.removeChild(anchor);
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    setMessage(`${filename} を作成しました。`);
   }
 
   async function handleImport(event: ChangeEvent<HTMLInputElement>): Promise<void> {
