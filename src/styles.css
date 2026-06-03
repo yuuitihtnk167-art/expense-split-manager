@@ -86,7 +86,7 @@ h2 {
   top: 0;
   z-index: 5;
   display: grid;
-  grid-template-columns: repeat(5, minmax(86px, 1fr));
+  grid-template-columns: repeat(6, minmax(86px, 1fr));
   gap: 8px;
   margin: 0 -14px 18px;
   padding: 10px 14px;
@@ -337,7 +337,8 @@ h2 {
 
 .primary-button,
 .secondary-button,
-.danger-button {
+.danger-button,
+.file-button {
   min-height: 48px;
   border-radius: 8px;
   font-weight: 800;
@@ -363,6 +364,30 @@ h2 {
   border: 1px solid #e1b6ae;
   background: #fff8f6;
   color: #8a2f21;
+}
+
+.data-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.file-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border: 1px solid #cfd7d2;
+  background: #ffffff;
+  color: #2b4138;
+}
+
+.file-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
 }
 
 .detail-grid {
@@ -391,7 +416,8 @@ h2 {
 }
 
 .empty-message,
-.error-message {
+.error-message,
+.info-message {
   margin: 0;
   padding: 16px;
   border-radius: 8px;
@@ -408,6 +434,13 @@ h2 {
   border: 1px solid #e8b2a9;
   background: #fff4f2;
   color: #8a2f21;
+  font-weight: 700;
+}
+
+.info-message {
+  border: 1px solid #c4d3cc;
+  background: #f7fbf9;
+  color: #2b4138;
   font-weight: 700;
 }
 
@@ -437,5 +470,9 @@ h2 {
 
   .secondary-button {
     width: 100%;
+  }
+
+  .data-actions {
+    grid-template-columns: 1fr;
   }
 }

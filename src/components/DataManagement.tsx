@@ -1,0 +1,159 @@
+import { ChangeEvent, useRef, useState } from "react";
+import type { AppData } from "../types";
+
+type DataManagementProps = {
+  data: AppData;
+  onImportData: (data: AppData) => void;
+};
+
+export function DataManagement({ data, onImportData }: DataManagementProps) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [message, setMessage] = useState("");
+  const totalPlans = data.splitPlans.length;
+  const totalProducts = data.productEntries.length;
+  const totalCandidates = data.learningCandidates.length;
+
+  function handleExport(): void {
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `receipt-split-manager-backup-${createTimestamp()}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setMessage("バックアップJSONを作成しました。");
+  }
+
+  async function handleImport(event: ChangeEvent<HTMLInputElement>): Promise<void> {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text) as unknown;
+      const importedData = normalizeImportedData(parsed);
+
+      if (!importedData) {
+        setMessage("読み込めないJSONです。バックアップファイルを確認してください。");
+        return;
+      }
+
+      const confirmed = window.confirm(
+        "現在のデータを、選択したバックアップ内容で上書きします。よろしいですか？",
+      );
+
+      if (!confirmed) {
+        setMessage("インポートをキャンセルしました。");
+        return;
+      }
+
+      onImportData(importedData);
+      setMessage("バックアップから復元しました。");
+    } catch {
+      setMessage("JSONファイルの読み込みに失敗しました。");
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  }
+
+  return (
+    <section className="screen">
+      <div className="screen-heading">
+        <p className="eyebrow">データ管理</p>
+        <h2>バックアップと復元</h2>
+      </div>
+
+      <div className="summary-strip">
+        <div>
+          <span>商品データ</span>
+          <strong>{totalProducts}件</strong>
+        </div>
+        <div>
+          <span>分割予定</span>
+          <strong>{totalPlans}件</strong>
+        </div>
+        <div>
+          <span>学習辞書</span>
+          <strong>{totalCandidates}件</strong>
+        </div>
+        <div>
+          <span>分割設定</span>
+          <strong>{data.splitSettings.length}件</strong>
+        </div>
+      </div>
+
+      <article className="item-card">
+        <div>
+          <p className="item-title">JSONバックアップ</p>
+          <p className="item-subtitle">
+            商品データ、分割設定、分割予定、学習辞書をまとめて保存します。
+          </p>
+        </div>
+        <div className="data-actions">
+          <button type="button" className="primary-button" onClick={handleExport}>
+            エクスポート
+          </button>
+          <label className="file-button">
+            インポート
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json,.json"
+              onChange={handleImport}
+            />
+          </label>
+        </div>
+        {message && <p className="info-message">{message}</p>}
+      </article>
+
+      <p className="empty-message">
+        データはこのブラウザのlocalStorageに保存されています。ブラウザ変更やキャッシュ削除に備えて、定期的にバックアップしてください。
+      </p>
+    </section>
+  );
+}
+
+function createTimestamp(): string {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hour = String(date.getHours()).padStart(2, "0");
+  const minute = String(date.getMinutes()).padStart(2, "0");
+
+  return `${year}${month}${day}-${hour}${minute}`;
+}
+
+function normalizeImportedData(value: unknown): AppData | null {
+  if (!isObject(value)) {
+    return null;
+  }
+
+  const maybeData = "data" in value && isObject(value.data) ? value.data : value;
+
+  if (
+    !Array.isArray(maybeData.productEntries) ||
+    !Array.isArray(maybeData.splitSettings) ||
+    !Array.isArray(maybeData.splitPlans) ||
+    !Array.isArray(maybeData.learningCandidates)
+  ) {
+    return null;
+  }
+
+  return {
+    productEntries: maybeData.productEntries,
+    splitSettings: maybeData.splitSettings,
+    splitPlans: maybeData.splitPlans,
+    learningCandidates: maybeData.learningCandidates,
+  } as AppData;
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}

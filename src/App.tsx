@@ -4,6 +4,7 @@ import { MonthlySummary } from "./components/MonthlySummary";
 import { MonthlyPlans } from "./components/MonthlyPlans";
 import { ProductList } from "./components/ProductList";
 import { LearningDictionary } from "./components/LearningDictionary";
+import { DataManagement } from "./components/DataManagement";
 import { Tabs } from "./components/Tabs";
 import { emptyAppData, loadAppData, saveAppData } from "./storage";
 import type {
@@ -24,6 +25,7 @@ const tabs = [
   { id: "plans", label: "月別予定" },
   { id: "products", label: "商品一覧" },
   { id: "dictionary", label: "学習辞書" },
+  { id: "data", label: "データ管理" },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
@@ -125,6 +127,10 @@ function App() {
     });
   }
 
+  function handleImportData(importedData: AppData): void {
+    updateData(importedData);
+  }
+
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -174,6 +180,10 @@ function App() {
             candidates={data.learningCandidates}
             onDelete={handleDeleteLearningCandidate}
           />
+        )}
+
+        {activeTab === "data" && (
+          <DataManagement data={data} onImportData={handleImportData} />
         )}
       </main>
     </div>
