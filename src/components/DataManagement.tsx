@@ -16,16 +16,51 @@ export function DataManagement({ data, onImportData }: DataManagementProps) {
   function handleExport(): void {
     const filename = `receipt-split-manager-backup-${createTimestamp()}.json`;
     const json = JSON.stringify(data, null, 2);
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
 
-    anchor.href = url;
-    anchor.download = filename;
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    downloadFile(filename, json, "application/json");
+    setMessage(`${filename} を作成しました。`);
+  }
+
+  function handleExportProductsCsv(): void {
+    const filename = `receipt-products-${createTimestamp()}.csv`;
+    const csv = createCsv([
+      ["購入日", "店舗名", "レシート上の商品名", "正式商品名", "金額（税込）", "分類", "入力方法"],
+      ...data.productEntries.map((product) => [
+        product.purchaseDate,
+        product.storeName,
+        product.receiptItemName,
+        product.officialItemName,
+        String(product.amountWithTax),
+        product.category,
+        product.inputMethod === "split" ? "分割入力" : "通常入力",
+      ]),
+    ]);
+
+    downloadFile(filename, csv, "text/csv;charset=utf-8");
+    setMessage(`${filename} を作成しました。`);
+  }
+
+  function handleExportSchedulesCsv(): void {
+    const filename = `receipt-schedules-${createTimestamp()}.csv`;
+    const productsById = new Map(
+      data.productEntries.map((product) => [product.id, product]),
+    );
+    const csv = createCsv([
+      ["対象月", "商品名", "分類", "配分額", "状態"],
+      ...data.splitPlans.map((plan) => {
+        const product = productsById.get(plan.productEntryId);
+
+        return [
+          plan.targetMonth,
+          product?.officialItemName ?? "削除済みの商品",
+          product?.category ?? "",
+          String(plan.allocatedAmount),
+          plan.status === "done" ? "入力済み" : "未入力",
+        ];
+      }),
+    ]);
+
+    downloadFile(filename, csv, "text/csv;charset=utf-8");
     setMessage(`${filename} を作成しました。`);
   }
 
@@ -116,6 +151,23 @@ export function DataManagement({ data, onImportData }: DataManagementProps) {
         {message && <p className="info-message">{message}</p>}
       </article>
 
+      <article className="item-card">
+        <div>
+          <p className="item-title">CSVエクスポート</p>
+          <p className="item-subtitle">
+            Excelや家計簿ソフトで使いやすいUTF-8 BOM付きCSVを作成します。
+          </p>
+        </div>
+        <div className="data-actions">
+          <button type="button" className="secondary-button" onClick={handleExportProductsCsv}>
+            商品一覧CSV
+          </button>
+          <button type="button" className="secondary-button" onClick={handleExportSchedulesCsv}>
+            分割予定CSV
+          </button>
+        </div>
+      </article>
+
       <p className="empty-message">
         データはこのブラウザのlocalStorageに保存されています。ブラウザ変更やキャッシュ削除に備えて、定期的にバックアップしてください。
       </p>
@@ -132,6 +184,31 @@ function createTimestamp(): string {
   const minute = String(date.getMinutes()).padStart(2, "0");
 
   return `${year}${month}${day}-${hour}${minute}`;
+}
+
+function downloadFile(filename: string, content: string, type: string): void {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function createCsv(rows: string[][]): string {
+  const body = rows.map((row) => row.map(escapeCsvValue).join(",")).join("\r\n");
+
+  return `\uFEFF${body}\r\n`;
+}
+
+function escapeCsvValue(value: string): string {
+  const escaped = value.replace(/"/g, '""');
+
+  return `"${escaped}"`;
 }
 
 function normalizeImportedData(value: unknown): AppData | null {
