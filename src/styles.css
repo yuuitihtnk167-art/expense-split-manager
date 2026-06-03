@@ -86,7 +86,7 @@ h2 {
   top: 0;
   z-index: 5;
   display: grid;
-  grid-template-columns: repeat(6, minmax(86px, 1fr));
+  grid-template-columns: repeat(7, minmax(92px, 1fr));
   gap: 8px;
   margin: 0 -14px 18px;
   padding: 10px 14px;
@@ -299,6 +299,21 @@ h2 {
 }
 
 .choice-group input {
+  width: 20px;
+  height: 20px;
+  accent-color: #31634f;
+}
+
+.check-row {
+  display: flex;
+  min-height: 36px;
+  gap: 10px;
+  align-items: center;
+  color: #3d4b46;
+  font-weight: 800;
+}
+
+.check-row input {
   width: 20px;
   height: 20px;
   accent-color: #31634f;

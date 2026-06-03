@@ -5,6 +5,7 @@ import { MonthlyPlans } from "./components/MonthlyPlans";
 import { ProductList } from "./components/ProductList";
 import { LearningDictionary } from "./components/LearningDictionary";
 import { DataManagement } from "./components/DataManagement";
+import { ReceiptReader } from "./components/ReceiptReader";
 import { Tabs } from "./components/Tabs";
 import { emptyAppData, loadAppData, saveAppData } from "./storage";
 import type {
@@ -22,6 +23,7 @@ import { createSplitPlans } from "./utils/split";
 const tabs = [
   { id: "today", label: "今月" },
   { id: "input", label: "商品入力" },
+  { id: "receipt", label: "レシート読取" },
   { id: "plans", label: "月別予定" },
   { id: "products", label: "商品一覧" },
   { id: "dictionary", label: "学習辞書" },
@@ -100,6 +102,34 @@ function App() {
     setActiveTab(values.inputMethod === "split" ? "today" : "products");
   }
 
+  function handleSubmitReceiptItems(valuesList: ProductFormValues[]): void {
+    const now = new Date().toISOString();
+    const productEntries = valuesList.map((values) => ({
+      id: crypto.randomUUID(),
+      purchaseDate: values.purchaseDate,
+      storeName: values.storeName.trim(),
+      receiptItemName: values.receiptItemName.trim(),
+      officialItemName: values.officialItemName.trim(),
+      amountWithTax: parseMoney(values.amountWithTax),
+      category: values.category.trim(),
+      inputMethod: "normal" as const,
+      createdAt: now,
+      updatedAt: now,
+    }));
+    const learningCandidates = productEntries.reduce(
+      (candidates, productEntry) => upsertLearningCandidate(candidates, productEntry),
+      data.learningCandidates,
+    );
+
+    updateData({
+      ...data,
+      productEntries: [...productEntries, ...data.productEntries],
+      learningCandidates,
+    });
+
+    setActiveTab("products");
+  }
+
   function handleTogglePlanStatus(planId: string, status: PlanStatus): void {
     updateData({
       ...data,
@@ -157,6 +187,10 @@ function App() {
             learningCandidates={data.learningCandidates}
             onSubmit={handleSubmitProduct}
           />
+        )}
+
+        {activeTab === "receipt" && (
+          <ReceiptReader onRegisterItems={handleSubmitReceiptItems} />
         )}
 
         {activeTab === "plans" && (
