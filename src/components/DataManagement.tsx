@@ -18,7 +18,7 @@ export function DataManagement({ data, onImportData, onUpdateCategories }: DataM
   const totalCategories = data.categories.length;
 
   function handleExport(): void {
-    const filename = `receipt-split-manager-backup-${createTimestamp()}.json`;
+    const filename = `expense-split-manager-backup-${createTimestamp()}.json`;
     const json = JSON.stringify(data, null, 2);
 
     downloadFile(filename, json, "application/json");
@@ -26,7 +26,7 @@ export function DataManagement({ data, onImportData, onUpdateCategories }: DataM
   }
 
   function handleExportProductsCsv(): void {
-    const filename = `receipt-products-${createTimestamp()}.csv`;
+    const filename = `expense-products-${createTimestamp()}.csv`;
     const csv = createCsv([
       ["日付", "支出元", "内容", "正式な内容", "金額（税込）", "大分類", "小分類", "メモ"],
       ...data.productEntries.map((product) => [
@@ -46,7 +46,7 @@ export function DataManagement({ data, onImportData, onUpdateCategories }: DataM
   }
 
   function handleExportSchedulesCsv(): void {
-    const filename = `receipt-schedules-${createTimestamp()}.csv`;
+    const filename = `expense-schedules-${createTimestamp()}.csv`;
     const productsById = new Map(
       data.productEntries.map((product) => [product.id, product]),
     );
