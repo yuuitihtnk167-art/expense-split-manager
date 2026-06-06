@@ -20,6 +20,7 @@ export function createSplitPlans(params: {
       targetMonth: addMonths(params.startMonth, index),
       allocatedAmount: baseAmount + (isLastMonth ? remainder : 0),
       status: "pending",
+      remainderStatus: index === 0 ? "pending" : undefined,
       memo: params.memo,
     };
   });

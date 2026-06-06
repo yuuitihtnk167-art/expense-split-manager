@@ -39,6 +39,9 @@ function App() {
   const productsById = useMemo(() => {
     return new Map(data.productEntries.map((product) => [product.id, product]));
   }, [data.productEntries]);
+  const settingsByProductId = useMemo(() => {
+    return new Map(data.splitSettings.map((setting) => [setting.productEntryId, setting]));
+  }, [data.splitSettings]);
 
   function updateData(nextData: AppData): void {
     setData(nextData);
@@ -99,6 +102,15 @@ function App() {
     });
   }
 
+  function handleToggleRemainderStatus(planId: string, status: PlanStatus): void {
+    updateData({
+      ...data,
+      splitPlans: data.splitPlans.map((plan) =>
+        plan.id === planId ? { ...plan, remainderStatus: status } : plan,
+      ),
+    });
+  }
+
   function handleDeleteProduct(productId: string): void {
     updateData({
       ...data,
@@ -137,6 +149,11 @@ function App() {
         .filter((plan) => plan.status === "done")
         .map((plan) => plan.targetMonth),
     );
+    const doneRemainderMonths = new Set(
+      existingPlans
+        .filter((plan) => plan.remainderStatus === "done")
+        .map((plan) => plan.targetMonth),
+    );
     const splitMonths = Number(values.splitMonths);
     const nextSplitSetting: SplitSetting = {
       productEntryId: productId,
@@ -154,6 +171,9 @@ function App() {
     }).map((plan) => ({
       ...plan,
       status: doneMonths.has(plan.targetMonth) ? ("done" as const) : plan.status,
+      remainderStatus: doneRemainderMonths.has(plan.targetMonth)
+        ? ("done" as const)
+        : plan.remainderStatus,
     }));
 
     updateData({
@@ -200,19 +220,27 @@ function App() {
           <MonthlySummary
             plans={data.splitPlans}
             productsById={productsById}
+            settingsByProductId={settingsByProductId}
             onToggleStatus={handleTogglePlanStatus}
+            onToggleRemainderStatus={handleToggleRemainderStatus}
           />
         )}
 
         {activeTab === "input" && (
-          <ProductForm categories={data.categories} onSubmit={handleSubmitProduct} />
+          <ProductForm
+            categories={data.categories}
+            onSubmit={handleSubmitProduct}
+            onUpdateCategories={handleUpdateCategories}
+          />
         )}
 
         {activeTab === "plans" && (
           <MonthlyPlans
             plans={data.splitPlans}
             productsById={productsById}
+            settingsByProductId={settingsByProductId}
             onToggleStatus={handleTogglePlanStatus}
+            onToggleRemainderStatus={handleToggleRemainderStatus}
           />
         )}
 
@@ -222,6 +250,7 @@ function App() {
             splitSettings={data.splitSettings}
             splitPlans={data.splitPlans}
             categories={data.categories}
+            onUpdateCategories={handleUpdateCategories}
             onUpdateProduct={handleUpdateProduct}
             onDeleteProduct={handleDeleteProduct}
           />

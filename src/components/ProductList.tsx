@@ -3,12 +3,14 @@ import type { CategoryGroup, ProductEntry, ProductFormValues, SplitPlan, SplitSe
 import { formatCategory, getFallbackCategory } from "../categories";
 import { formatDate, formatMonth } from "../utils/date";
 import { formatMoney, parseMoney } from "../utils/money";
+import { CategoryPicker } from "./CategoryPicker";
 
 type ProductListProps = {
   products: ProductEntry[];
   splitSettings: SplitSetting[];
   splitPlans: SplitPlan[];
   categories: CategoryGroup[];
+  onUpdateCategories: (categories: CategoryGroup[]) => void;
   onUpdateProduct: (productId: string, values: ProductFormValues) => void;
   onDeleteProduct: (productId: string) => void;
   notice?: string;
@@ -19,6 +21,7 @@ export function ProductList({
   splitSettings,
   splitPlans,
   categories,
+  onUpdateCategories,
   onUpdateProduct,
   onDeleteProduct,
   notice,
@@ -26,6 +29,7 @@ export function ProductList({
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<ProductFormValues | null>(null);
   const [editError, setEditError] = useState("");
+  const [isCategoryPickerOpen, setIsCategoryPickerOpen] = useState(false);
   const settingsByProductId = new Map(
     splitSettings.map((setting) => [setting.productEntryId, setting]),
   );
@@ -72,32 +76,18 @@ export function ProductList({
     setEditValues((current) => (current ? { ...current, [name]: value } : current));
   }
 
-  function updateEditMajorCategory(value: string): void {
-    const nextGroup = categories.find((category) => category.name === value);
-    const nextMinor = nextGroup?.subcategories[0]?.name ?? "";
-
+  function selectEditCategory(major: string, minor: string): void {
     setEditValues((current) =>
       current
         ? {
             ...current,
-            category: formatCategory(value, nextMinor),
-            categoryMajor: value,
-            categoryMinor: nextMinor,
+            category: formatCategory(major, minor),
+            categoryMajor: major,
+            categoryMinor: minor,
           }
         : current,
     );
-  }
-
-  function updateEditMinorCategory(value: string): void {
-    setEditValues((current) =>
-      current
-        ? {
-            ...current,
-            category: formatCategory(current.categoryMajor, value),
-            categoryMinor: value,
-          }
-        : current,
-    );
+    setIsCategoryPickerOpen(false);
   }
 
   function handleEditSubmit(event: FormEvent<HTMLFormElement>, product: ProductEntry): void {
@@ -114,10 +104,14 @@ export function ProductList({
 
     if (
       !editValues.purchaseDate ||
-      !editValues.receiptItemName.trim() ||
-      !editValues.officialItemName.trim()
+      !editValues.receiptItemName.trim()
     ) {
-      setEditError("日付、内容、正式な内容を入力してください。");
+      setEditError("日付と内容を入力してください。");
+      return;
+    }
+
+    if (!editValues.storeName.trim()) {
+      setEditError("支出元を入力してください。");
       return;
     }
 
@@ -156,6 +150,7 @@ export function ProductList({
 
     onUpdateProduct(product.id, {
       ...editValues,
+      officialItemName: editValues.receiptItemName.trim(),
       category: formatCategory(editValues.categoryMajor, editValues.categoryMinor),
       inputMethod: "split",
     });
@@ -180,11 +175,16 @@ export function ProductList({
             const productPlans = splitPlans.filter((plan) => plan.productEntryId === product.id);
             const doneCount = productPlans.filter((plan) => plan.status === "done").length;
             const isEditing = editingProductId === product.id && editValues !== null;
-            const selectedCategory = editValues
-              ? categories.find((category) => category.name === editValues.categoryMajor)
-              : undefined;
-            const subcategories = selectedCategory?.subcategories ?? [];
-
+            const editAmount = editValues ? parseMoney(editValues.amountWithTax) : 0;
+            const editMonths = editValues ? Number(editValues.splitMonths) : 0;
+            const editMonthlyAmount =
+              Number.isInteger(editMonths) && editMonths > 0
+                ? Math.floor(editAmount / editMonths)
+                : 0;
+            const editRemainder =
+              Number.isInteger(editMonths) && editMonths > 0
+                ? editAmount - editMonthlyAmount * editMonths
+                : 0;
             return (
               <article key={product.id} className="item-card">
                 <div className="item-card-main">
@@ -237,19 +237,36 @@ export function ProductList({
                 {isEditing && (
                   <form className="edit-form" onSubmit={(event) => handleEditSubmit(event, product)}>
                     <label className="field">
+                      <span>金額（税込）</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={editValues.amountWithTax}
+                        onChange={(event) => updateEditValue("amountWithTax", event.target.value)}
+                      />
+                    </label>
+                    <div className="field">
+                      <span>カテゴリ</span>
+                      <button
+                        type="button"
+                        className="selection-button"
+                        onClick={() => setIsCategoryPickerOpen(true)}
+                      >
+                        <span>
+                          {formatCategory(
+                            editValues.categoryMajor,
+                            editValues.categoryMinor,
+                          )}
+                        </span>
+                        <span aria-hidden="true">›</span>
+                      </button>
+                    </div>
+                    <label className="field">
                       <span>日付</span>
                       <input
                         type="date"
                         value={editValues.purchaseDate}
                         onChange={(event) => updateEditValue("purchaseDate", event.target.value)}
-                      />
-                    </label>
-                    <label className="field">
-                      <span>支出元</span>
-                      <input
-                        type="text"
-                        value={editValues.storeName}
-                        onChange={(event) => updateEditValue("storeName", event.target.value)}
                       />
                     </label>
                     <label className="field">
@@ -261,50 +278,13 @@ export function ProductList({
                       />
                     </label>
                     <label className="field">
-                      <span>正式な内容</span>
+                      <span>支出元</span>
                       <input
                         type="text"
-                        value={editValues.officialItemName}
-                        onChange={(event) => updateEditValue("officialItemName", event.target.value)}
+                        value={editValues.storeName}
+                        onChange={(event) => updateEditValue("storeName", event.target.value)}
                       />
                     </label>
-                    <label className="field">
-                      <span>金額（税込）</span>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        value={editValues.amountWithTax}
-                        onChange={(event) => updateEditValue("amountWithTax", event.target.value)}
-                      />
-                    </label>
-                    <div className="category-select-grid">
-                      <label className="field">
-                        <span>カテゴリ</span>
-                        <select
-                          value={editValues.categoryMajor}
-                          onChange={(event) => updateEditMajorCategory(event.target.value)}
-                        >
-                          {categories.map((category) => (
-                            <option key={category.id} value={category.name}>
-                              {category.name}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="field">
-                        <span>小分類</span>
-                        <select
-                          value={editValues.categoryMinor}
-                          onChange={(event) => updateEditMinorCategory(event.target.value)}
-                        >
-                          {subcategories.map((subcategory) => (
-                            <option key={subcategory.id} value={subcategory.name}>
-                              {subcategory.name}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                    </div>
                     <label className="field">
                       <span>メモ</span>
                       <textarea
@@ -334,6 +314,17 @@ export function ProductList({
                         />
                       </label>
                     </div>
+                    <div className="allocation-preview">
+                      <div>
+                        <span>分割後の金額（1ヶ月あたり）</span>
+                        <strong>{formatMoney(editMonthlyAmount)}</strong>
+                      </div>
+                      <div>
+                        <span>端数</span>
+                        <strong>{formatMoney(editRemainder)}</strong>
+                      </div>
+                      <small>端数は最終月の入力額に加算します。</small>
+                    </div>
                     {editError && <p className="error-message">{editError}</p>}
                     <div className="inline-actions">
                       <button type="submit" className="primary-button">
@@ -361,6 +352,15 @@ export function ProductList({
                     削除
                   </button>
                 </div>
+                {isEditing && isCategoryPickerOpen && (
+                  <CategoryPicker
+                    categories={categories}
+                    selectedMajor=""
+                    onClose={() => setIsCategoryPickerOpen(false)}
+                    onSelect={selectEditCategory}
+                    onUpdateCategories={onUpdateCategories}
+                  />
+                )}
               </article>
             );
           })}

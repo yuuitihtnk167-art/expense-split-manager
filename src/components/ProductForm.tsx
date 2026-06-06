@@ -3,6 +3,7 @@ import type { CategoryGroup, ProductFormValues } from "../types";
 import { formatCategory, getFallbackCategory } from "../categories";
 import { getCurrentMonth, getTodayDate } from "../utils/date";
 import { formatMoney, parseMoney } from "../utils/money";
+import { CategoryPicker } from "./CategoryPicker";
 
 const defaultValues: ProductFormValues = {
   purchaseDate: getTodayDate(),
@@ -22,9 +23,14 @@ const defaultValues: ProductFormValues = {
 type ProductFormProps = {
   categories: CategoryGroup[];
   onSubmit: (values: ProductFormValues) => void;
+  onUpdateCategories: (categories: CategoryGroup[]) => void;
 };
 
-export function ProductForm({ categories, onSubmit }: ProductFormProps) {
+export function ProductForm({
+  categories,
+  onSubmit,
+  onUpdateCategories,
+}: ProductFormProps) {
   const fallbackCategory = useMemo(() => getFallbackCategory(categories), [categories]);
   const [values, setValues] = useState<ProductFormValues>(() => ({
     ...defaultValues,
@@ -33,43 +39,43 @@ export function ProductForm({ categories, onSubmit }: ProductFormProps) {
     categoryMinor: fallbackCategory.minor,
   }));
   const [error, setError] = useState("");
+  const [isCategoryPickerOpen, setIsCategoryPickerOpen] = useState(false);
   const amount = parseMoney(values.amountWithTax);
   const splitMonths = Number(values.splitMonths);
-  const monthlyPreview = splitMonths > 0 ? Math.floor(amount / splitMonths) : 0;
-  const lastMonthPreview = splitMonths > 0 ? amount - monthlyPreview * (splitMonths - 1) : 0;
-  const selectedCategory = categories.find((category) => category.name === values.categoryMajor);
-  const subcategories = selectedCategory?.subcategories ?? [];
+  const monthlyPreview =
+    Number.isInteger(splitMonths) && splitMonths > 0
+      ? Math.floor(amount / splitMonths)
+      : 0;
+  const remainder =
+    Number.isInteger(splitMonths) && splitMonths > 0
+      ? amount - monthlyPreview * splitMonths
+      : 0;
 
   function updateValue(name: keyof ProductFormValues, value: string): void {
     setValues((current) => ({ ...current, [name]: value }));
   }
 
-  function updateMajorCategory(value: string): void {
-    const nextGroup = categories.find((category) => category.name === value);
-    const nextMinor = nextGroup?.subcategories[0]?.name ?? "";
-
+  function selectCategory(major: string, minor: string): void {
     setValues((current) => ({
       ...current,
-      categoryMajor: value,
-      categoryMinor: nextMinor,
-      category: formatCategory(value, nextMinor),
+      category: formatCategory(major, minor),
+      categoryMajor: major,
+      categoryMinor: minor,
     }));
-  }
-
-  function updateMinorCategory(value: string): void {
-    setValues((current) => ({
-      ...current,
-      categoryMinor: value,
-      category: formatCategory(current.categoryMajor, value),
-    }));
+    setIsCategoryPickerOpen(false);
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
     setError("");
 
-    if (!values.purchaseDate || !values.receiptItemName.trim() || !values.officialItemName.trim()) {
-      setError("日付、内容、正式な内容を入力してください。");
+    if (!values.purchaseDate || !values.receiptItemName.trim()) {
+      setError("日付と内容を入力してください。");
+      return;
+    }
+
+    if (!values.storeName.trim()) {
+      setError("支出元を入力してください。");
       return;
     }
 
@@ -100,6 +106,7 @@ export function ProductForm({ categories, onSubmit }: ProductFormProps) {
 
     onSubmit({
       ...values,
+      officialItemName: values.receiptItemName.trim(),
       category: formatCategory(values.categoryMajor, values.categoryMinor),
       inputMethod: "split",
     });
@@ -115,29 +122,45 @@ export function ProductForm({ categories, onSubmit }: ProductFormProps) {
   }
 
   return (
-    <section className="screen">
+    <section className="screen entry-screen">
       <div className="screen-heading">
-        <p className="eyebrow">商品入力</p>
+        <p className="eyebrow">支出入力</p>
         <h2>分割入力予定を登録</h2>
       </div>
 
-      <form className="form-stack" onSubmit={handleSubmit}>
+      <form className="form-stack entry-form" onSubmit={handleSubmit}>
+        <label className="field amount-field">
+          <span>金額（税込）</span>
+          <div className="money-input">
+            <span>￥</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={values.amountWithTax}
+              onChange={(event) => updateValue("amountWithTax", event.target.value)}
+              placeholder="50,000"
+            />
+          </div>
+        </label>
+
+        <div className="field">
+          <span>カテゴリ</span>
+          <button
+            type="button"
+            className="selection-button"
+            onClick={() => setIsCategoryPickerOpen(true)}
+          >
+            <span>{formatCategory(values.categoryMajor, values.categoryMinor)}</span>
+            <span aria-hidden="true">›</span>
+          </button>
+        </div>
+
         <label className="field">
           <span>日付</span>
           <input
             type="date"
             value={values.purchaseDate}
             onChange={(event) => updateValue("purchaseDate", event.target.value)}
-          />
-        </label>
-
-        <label className="field">
-          <span>支出元</span>
-          <input
-            type="text"
-            value={values.storeName}
-            onChange={(event) => updateValue("storeName", event.target.value)}
-            placeholder="例：家電ショップ"
           />
         </label>
 
@@ -152,54 +175,14 @@ export function ProductForm({ categories, onSubmit }: ProductFormProps) {
         </label>
 
         <label className="field">
-          <span>正式な内容</span>
+          <span>支出元</span>
           <input
             type="text"
-            value={values.officialItemName}
-            onChange={(event) => updateValue("officialItemName", event.target.value)}
-            placeholder="例：ノートパソコン"
+            value={values.storeName}
+            onChange={(event) => updateValue("storeName", event.target.value)}
+            placeholder="例：家電ショップ"
           />
         </label>
-
-        <label className="field">
-          <span>金額（税込）</span>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={values.amountWithTax}
-            onChange={(event) => updateValue("amountWithTax", event.target.value)}
-            placeholder="例：60000"
-          />
-        </label>
-
-        <div className="category-select-grid">
-          <label className="field">
-            <span>カテゴリ</span>
-            <select
-              value={values.categoryMajor}
-              onChange={(event) => updateMajorCategory(event.target.value)}
-            >
-              {categories.map((category) => (
-                <option key={category.id} value={category.name}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>小分類</span>
-            <select
-              value={values.categoryMinor}
-              onChange={(event) => updateMinorCategory(event.target.value)}
-            >
-              {subcategories.map((subcategory) => (
-                <option key={subcategory.id} value={subcategory.name}>
-                  {subcategory.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
 
         <label className="field">
           <span>メモ</span>
@@ -210,43 +193,63 @@ export function ProductForm({ categories, onSubmit }: ProductFormProps) {
           />
         </label>
 
-        <div className="split-panel">
-          <label className="field">
-            <span>分割月数</span>
-            <input
-              type="number"
-              min="2"
-              step="1"
-              value={values.splitMonths}
-              onChange={(event) => updateValue("splitMonths", event.target.value)}
-            />
-          </label>
-
-          <label className="field">
-            <span>開始月</span>
-            <input
-              type="month"
-              value={values.splitStartMonth}
-              onChange={(event) => updateValue("splitStartMonth", event.target.value)}
-            />
-          </label>
-
-          <div className="preview-box">
-            <span>月額入力額の目安</span>
-            <strong>
-              {formatMoney(monthlyPreview)}
-              {lastMonthPreview !== monthlyPreview && ` / 最終月 ${formatMoney(lastMonthPreview)}`}
-            </strong>
-            <small>端数は最終月で調整します。</small>
+        <section className="split-panel">
+          <div className="split-panel-title">
+            <strong>分割設定</strong>
+            <span>必須</span>
           </div>
+
+          <div className="split-input-grid">
+            <label className="field">
+              <span>分割月数</span>
+              <input
+                type="number"
+                min="2"
+                step="1"
+                value={values.splitMonths}
+                onChange={(event) => updateValue("splitMonths", event.target.value)}
+              />
+            </label>
+
+            <label className="field">
+              <span>開始月</span>
+              <input
+                type="month"
+                value={values.splitStartMonth}
+                onChange={(event) => updateValue("splitStartMonth", event.target.value)}
+              />
+            </label>
+          </div>
+        </section>
+
+        <div className="allocation-preview">
+          <div>
+            <span>分割後の金額（1ヶ月あたり）</span>
+            <strong>{formatMoney(monthlyPreview)}</strong>
+          </div>
+          <div>
+            <span>端数</span>
+            <strong>{formatMoney(remainder)}</strong>
+          </div>
+          <small>端数は最終月の入力額に加算します。</small>
         </div>
 
         {error && <p className="error-message">{error}</p>}
 
-        <button type="submit" className="primary-button">
-          登録する
+        <button type="submit" className="primary-button submit-button">
+          分割予定を登録
         </button>
       </form>
+
+      {isCategoryPickerOpen && (
+        <CategoryPicker
+          categories={categories}
+          selectedMajor=""
+          onClose={() => setIsCategoryPickerOpen(false)}
+          onSelect={selectCategory}
+          onUpdateCategories={onUpdateCategories}
+        />
+      )}
     </section>
   );
 }

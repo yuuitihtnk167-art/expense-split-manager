@@ -43,6 +43,7 @@ export type SplitPlan = {
   targetMonth: string;
   allocatedAmount: number;
   status: PlanStatus;
+  remainderStatus?: PlanStatus;
   memo: string;
 };
 
