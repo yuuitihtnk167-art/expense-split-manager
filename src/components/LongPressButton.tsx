@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
-const LONG_PRESS_DURATION = 800;
-const MOVE_CANCEL_THRESHOLD = 10;
+const LONG_PRESS_DURATION = 600;
+const MOVE_CANCEL_THRESHOLD = 20;
 
 type LongPressButtonProps = {
   className: string;
