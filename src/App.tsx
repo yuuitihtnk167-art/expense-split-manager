@@ -56,42 +56,38 @@ function App() {
       officialItemName: values.officialItemName.trim(),
       amountWithTax,
       category: values.category.trim(),
-      inputMethod: values.inputMethod,
+      categoryMajor: values.categoryMajor,
+      categoryMinor: values.categoryMinor,
+      inputMethod: "split",
       memo: values.splitMemo.trim(),
       createdAt: now,
       updatedAt: now,
     };
 
     const splitMonths = Number(values.splitMonths);
-    const splitSetting: SplitSetting | null =
-      values.inputMethod === "split"
-        ? {
-            productEntryId: productEntry.id,
-            months: splitMonths,
-            startMonth: values.splitStartMonth,
-            rounding: "last_month_adjust",
-            memo: values.splitMemo.trim(),
-          }
-        : null;
-
-    const splitPlans =
-      splitSetting === null
-        ? []
-        : createSplitPlans({
-            productEntryId: productEntry.id,
-            amountWithTax,
-            months: splitSetting.months,
-            startMonth: splitSetting.startMonth,
-            memo: splitSetting.memo,
-          });
+    const splitSetting: SplitSetting = {
+      productEntryId: productEntry.id,
+      months: splitMonths,
+      startMonth: values.splitStartMonth,
+      rounding: "last_month_adjust",
+      memo: values.splitMemo.trim(),
+    };
+    const splitPlans = createSplitPlans({
+      productEntryId: productEntry.id,
+      amountWithTax,
+      months: splitSetting.months,
+      startMonth: splitSetting.startMonth,
+      memo: splitSetting.memo,
+    });
 
     updateData({
       productEntries: [productEntry, ...data.productEntries],
-      splitSettings: splitSetting ? [splitSetting, ...data.splitSettings] : data.splitSettings,
+      splitSettings: [splitSetting, ...data.splitSettings],
       splitPlans: [...splitPlans, ...data.splitPlans],
+      categories: data.categories,
     });
 
-    setActiveTab(values.inputMethod === "split" ? "today" : "products");
+    setActiveTab("today");
   }
 
   function handleTogglePlanStatus(planId: string, status: PlanStatus): void {
@@ -128,7 +124,9 @@ function App() {
       officialItemName: values.officialItemName.trim(),
       amountWithTax,
       category: values.category.trim(),
-      inputMethod: values.inputMethod,
+      categoryMajor: values.categoryMajor,
+      categoryMinor: values.categoryMinor,
+      inputMethod: "split",
       memo: values.splitMemo.trim(),
       updatedAt: new Date().toISOString(),
     };
@@ -140,50 +138,49 @@ function App() {
         .map((plan) => plan.targetMonth),
     );
     const splitMonths = Number(values.splitMonths);
-    const nextSplitSetting: SplitSetting | null =
-      values.inputMethod === "split"
-        ? {
-            productEntryId: productId,
-            months: splitMonths,
-            startMonth: values.splitStartMonth,
-            rounding: "last_month_adjust",
-            memo: values.splitMemo.trim(),
-          }
-        : null;
-    const nextSplitPlans =
-      nextSplitSetting === null
-        ? []
-        : createSplitPlans({
-            productEntryId: productId,
-            amountWithTax,
-            months: nextSplitSetting.months,
-            startMonth: nextSplitSetting.startMonth,
-            memo: nextSplitSetting.memo,
-          }).map((plan) => ({
-            ...plan,
-            status: doneMonths.has(plan.targetMonth) ? ("done" as const) : plan.status,
-          }));
+    const nextSplitSetting: SplitSetting = {
+      productEntryId: productId,
+      months: splitMonths,
+      startMonth: values.splitStartMonth,
+      rounding: "last_month_adjust",
+      memo: values.splitMemo.trim(),
+    };
+    const nextSplitPlans = createSplitPlans({
+      productEntryId: productId,
+      amountWithTax,
+      months: nextSplitSetting.months,
+      startMonth: nextSplitSetting.startMonth,
+      memo: nextSplitSetting.memo,
+    }).map((plan) => ({
+      ...plan,
+      status: doneMonths.has(plan.targetMonth) ? ("done" as const) : plan.status,
+    }));
 
     updateData({
       productEntries: data.productEntries.map((product) =>
         product.id === productId ? updatedProduct : product,
       ),
-      splitSettings:
-        nextSplitSetting === null
-          ? data.splitSettings.filter((setting) => setting.productEntryId !== productId)
-          : [
-              nextSplitSetting,
-              ...data.splitSettings.filter((setting) => setting.productEntryId !== productId),
-            ],
+      splitSettings: [
+        nextSplitSetting,
+        ...data.splitSettings.filter((setting) => setting.productEntryId !== productId),
+      ],
       splitPlans: [
         ...nextSplitPlans,
         ...data.splitPlans.filter((plan) => plan.productEntryId !== productId),
       ],
+      categories: data.categories,
     });
   }
 
   function handleImportData(importedData: AppData): void {
     updateData(importedData);
+  }
+
+  function handleUpdateCategories(categories: AppData["categories"]): void {
+    updateData({
+      ...data,
+      categories,
+    });
   }
 
   return (
@@ -208,7 +205,7 @@ function App() {
         )}
 
         {activeTab === "input" && (
-          <ProductForm onSubmit={handleSubmitProduct} />
+          <ProductForm categories={data.categories} onSubmit={handleSubmitProduct} />
         )}
 
         {activeTab === "plans" && (
@@ -224,13 +221,18 @@ function App() {
             products={data.productEntries}
             splitSettings={data.splitSettings}
             splitPlans={data.splitPlans}
+            categories={data.categories}
             onUpdateProduct={handleUpdateProduct}
             onDeleteProduct={handleDeleteProduct}
           />
         )}
 
         {activeTab === "data" && (
-          <DataManagement data={data} onImportData={handleImportData} />
+          <DataManagement
+            data={data}
+            onImportData={handleImportData}
+            onUpdateCategories={handleUpdateCategories}
+          />
         )}
       </main>
     </div>

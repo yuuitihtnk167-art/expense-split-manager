@@ -1,16 +1,21 @@
 import { ChangeEvent, useRef, useState } from "react";
+import { defaultCategories } from "../categories";
+import { CategoryManager } from "./CategoryManager";
 import type { AppData } from "../types";
+import type { CategoryGroup } from "../types";
 
 type DataManagementProps = {
   data: AppData;
   onImportData: (data: AppData) => void;
+  onUpdateCategories: (categories: CategoryGroup[]) => void;
 };
 
-export function DataManagement({ data, onImportData }: DataManagementProps) {
+export function DataManagement({ data, onImportData, onUpdateCategories }: DataManagementProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [message, setMessage] = useState("");
   const totalPlans = data.splitPlans.length;
   const totalProducts = data.productEntries.length;
+  const totalCategories = data.categories.length;
 
   function handleExport(): void {
     const filename = `receipt-split-manager-backup-${createTimestamp()}.json`;
@@ -23,15 +28,15 @@ export function DataManagement({ data, onImportData }: DataManagementProps) {
   function handleExportProductsCsv(): void {
     const filename = `receipt-products-${createTimestamp()}.csv`;
     const csv = createCsv([
-      ["購入日", "店舗名", "商品名", "正式商品名", "金額（税込）", "分類", "入力方法", "メモ"],
+      ["日付", "支出元", "内容", "正式な内容", "金額（税込）", "大分類", "小分類", "メモ"],
       ...data.productEntries.map((product) => [
         product.purchaseDate,
         product.storeName,
         product.receiptItemName,
         product.officialItemName,
         String(product.amountWithTax),
-        product.category,
-        product.inputMethod === "split" ? "分割入力" : "通常入力",
+        product.categoryMajor ?? "",
+        product.categoryMinor ?? product.category,
         product.memo ?? "",
       ]),
     ]);
@@ -46,14 +51,15 @@ export function DataManagement({ data, onImportData }: DataManagementProps) {
       data.productEntries.map((product) => [product.id, product]),
     );
     const csv = createCsv([
-      ["対象月", "商品名", "分類", "配分額", "状態"],
+      ["対象月", "内容", "大分類", "小分類", "配分額", "状態"],
       ...data.splitPlans.map((plan) => {
         const product = productsById.get(plan.productEntryId);
 
         return [
           plan.targetMonth,
           product?.officialItemName ?? "削除済みの商品",
-          product?.category ?? "",
+          product?.categoryMajor ?? "",
+          product?.categoryMinor ?? product?.category ?? "",
           String(plan.allocatedAmount),
           plan.status === "done" ? "入力済み" : "未入力",
         ];
@@ -121,13 +127,17 @@ export function DataManagement({ data, onImportData }: DataManagementProps) {
           <span>分割設定</span>
           <strong>{data.splitSettings.length}件</strong>
         </div>
+        <div>
+          <span>カテゴリ大分類</span>
+          <strong>{totalCategories}件</strong>
+        </div>
       </div>
 
       <article className="item-card">
         <div>
           <p className="item-title">JSONバックアップ</p>
           <p className="item-subtitle">
-            商品データ、分割設定、分割予定をまとめて保存します。
+            商品データ、分割設定、分割予定、カテゴリ設定をまとめて保存します。
           </p>
         </div>
         <div className="data-actions">
@@ -163,6 +173,8 @@ export function DataManagement({ data, onImportData }: DataManagementProps) {
           </button>
         </div>
       </article>
+
+      <CategoryManager categories={data.categories} onChange={onUpdateCategories} />
 
       <p className="empty-message">
         データはこのブラウザのlocalStorageに保存されています。ブラウザ変更やキャッシュ削除に備えて、定期的にバックアップしてください。
@@ -226,6 +238,10 @@ function normalizeImportedData(value: unknown): AppData | null {
     productEntries: maybeData.productEntries,
     splitSettings: maybeData.splitSettings,
     splitPlans: maybeData.splitPlans,
+    categories:
+      Array.isArray(maybeData.categories) && maybeData.categories.length > 0
+        ? (maybeData.categories as CategoryGroup[])
+        : defaultCategories,
   } as AppData;
 }
 

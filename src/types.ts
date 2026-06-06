@@ -2,6 +2,17 @@ export type InputMethod = "normal" | "split";
 
 export type PlanStatus = "pending" | "done";
 
+export type CategoryItem = {
+  id: string;
+  name: string;
+};
+
+export type CategoryGroup = {
+  id: string;
+  name: string;
+  subcategories: CategoryItem[];
+};
+
 export type ProductEntry = {
   id: string;
   purchaseDate: string;
@@ -10,6 +21,8 @@ export type ProductEntry = {
   officialItemName: string;
   amountWithTax: number;
   category: string;
+  categoryMajor?: string;
+  categoryMinor?: string;
   inputMethod: InputMethod;
   memo?: string;
   createdAt: string;
@@ -37,6 +50,7 @@ export type AppData = {
   productEntries: ProductEntry[];
   splitSettings: SplitSetting[];
   splitPlans: SplitPlan[];
+  categories: CategoryGroup[];
 };
 
 export type ProductFormValues = {
@@ -46,6 +60,8 @@ export type ProductFormValues = {
   officialItemName: string;
   amountWithTax: string;
   category: string;
+  categoryMajor: string;
+  categoryMinor: string;
   inputMethod: InputMethod;
   splitMonths: string;
   splitStartMonth: string;

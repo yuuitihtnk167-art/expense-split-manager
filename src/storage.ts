@@ -1,4 +1,5 @@
 import type { AppData } from "./types";
+import { defaultCategories } from "./categories";
 
 const STORAGE_KEY = "receipt-split-manager:v1";
 
@@ -6,6 +7,7 @@ export const emptyAppData: AppData = {
   productEntries: [],
   splitSettings: [],
   splitPlans: [],
+  categories: defaultCategories,
 };
 
 export function loadAppData(): AppData {
@@ -22,6 +24,9 @@ export function loadAppData(): AppData {
       productEntries: Array.isArray(parsed.productEntries) ? parsed.productEntries : [],
       splitSettings: Array.isArray(parsed.splitSettings) ? parsed.splitSettings : [],
       splitPlans: Array.isArray(parsed.splitPlans) ? parsed.splitPlans : [],
+      categories: Array.isArray(parsed.categories) && parsed.categories.length > 0
+        ? parsed.categories
+        : defaultCategories,
     };
   } catch {
     return emptyAppData;

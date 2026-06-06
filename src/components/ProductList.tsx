@@ -1,5 +1,6 @@
 import { FormEvent, useState } from "react";
-import type { ProductEntry, ProductFormValues, SplitPlan, SplitSetting } from "../types";
+import type { CategoryGroup, ProductEntry, ProductFormValues, SplitPlan, SplitSetting } from "../types";
+import { formatCategory, getFallbackCategory } from "../categories";
 import { formatDate, formatMonth } from "../utils/date";
 import { formatMoney, parseMoney } from "../utils/money";
 
@@ -7,6 +8,7 @@ type ProductListProps = {
   products: ProductEntry[];
   splitSettings: SplitSetting[];
   splitPlans: SplitPlan[];
+  categories: CategoryGroup[];
   onUpdateProduct: (productId: string, values: ProductFormValues) => void;
   onDeleteProduct: (productId: string) => void;
   notice?: string;
@@ -16,6 +18,7 @@ export function ProductList({
   products,
   splitSettings,
   splitPlans,
+  categories,
   onUpdateProduct,
   onDeleteProduct,
   notice,
@@ -26,6 +29,7 @@ export function ProductList({
   const settingsByProductId = new Map(
     splitSettings.map((setting) => [setting.productEntryId, setting]),
   );
+  const fallbackCategory = getFallbackCategory(categories);
 
   function handleDeleteClick(product: ProductEntry): void {
     const confirmed = window.confirm(
@@ -38,6 +42,8 @@ export function ProductList({
   }
 
   function startEditing(product: ProductEntry, setting: SplitSetting | undefined): void {
+    const categoryValues = resolveProductCategory(product, categories, fallbackCategory);
+
     setEditingProductId(product.id);
     setEditValues({
       purchaseDate: product.purchaseDate,
@@ -45,8 +51,10 @@ export function ProductList({
       receiptItemName: product.receiptItemName,
       officialItemName: product.officialItemName,
       amountWithTax: String(product.amountWithTax),
-      category: product.category,
-      inputMethod: product.inputMethod,
+      category: formatCategory(categoryValues.major, categoryValues.minor),
+      categoryMajor: categoryValues.major,
+      categoryMinor: categoryValues.minor,
+      inputMethod: "split",
       splitMonths: setting ? String(setting.months) : "6",
       splitStartMonth: setting?.startMonth ?? product.purchaseDate.slice(0, 7),
       splitMemo: product.memo ?? setting?.memo ?? "",
@@ -62,6 +70,34 @@ export function ProductList({
 
   function updateEditValue(name: keyof ProductFormValues, value: string): void {
     setEditValues((current) => (current ? { ...current, [name]: value } : current));
+  }
+
+  function updateEditMajorCategory(value: string): void {
+    const nextGroup = categories.find((category) => category.name === value);
+    const nextMinor = nextGroup?.subcategories[0]?.name ?? "";
+
+    setEditValues((current) =>
+      current
+        ? {
+            ...current,
+            category: formatCategory(value, nextMinor),
+            categoryMajor: value,
+            categoryMinor: nextMinor,
+          }
+        : current,
+    );
+  }
+
+  function updateEditMinorCategory(value: string): void {
+    setEditValues((current) =>
+      current
+        ? {
+            ...current,
+            category: formatCategory(current.categoryMajor, value),
+            categoryMinor: value,
+          }
+        : current,
+    );
   }
 
   function handleEditSubmit(event: FormEvent<HTMLFormElement>, product: ProductEntry): void {
@@ -81,7 +117,7 @@ export function ProductList({
       !editValues.receiptItemName.trim() ||
       !editValues.officialItemName.trim()
     ) {
-      setEditError("購入日、商品名、正式な商品名を入力してください。");
+      setEditError("日付、内容、正式な内容を入力してください。");
       return;
     }
 
@@ -90,32 +126,39 @@ export function ProductList({
       return;
     }
 
-    if (!editValues.category.trim()) {
-      setEditError("分類を入力してください。");
+    if (!editValues.categoryMajor || !editValues.categoryMinor) {
+      setEditError("カテゴリを選択してください。");
       return;
     }
 
-    if (editValues.inputMethod === "split") {
-      if (!Number.isInteger(splitMonths) || splitMonths < 2) {
-        setEditError("分割月数は2ヶ月以上で入力してください。");
-        return;
-      }
-
-      if (!editValues.splitStartMonth) {
-        setEditError("開始月を入力してください。");
-        return;
-      }
-
-      const confirmed = window.confirm(
-        "分割予定を再計算します。入力済みの月は入力済みのまま保持します。よろしいですか？",
-      );
-
-      if (!confirmed) {
-        return;
-      }
+    if (!Number.isInteger(splitMonths) || splitMonths < 2) {
+      setEditError("分割月数は2ヶ月以上で入力してください。");
+      return;
     }
 
-    onUpdateProduct(product.id, editValues);
+    if (!editValues.splitStartMonth) {
+      setEditError("開始月を入力してください。");
+      return;
+    }
+
+    if (!editValues.splitMemo.trim()) {
+      setEditError("メモを入力してください。");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "分割予定を再計算します。入力済みの月は入力済みのまま保持します。よろしいですか？",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    onUpdateProduct(product.id, {
+      ...editValues,
+      category: formatCategory(editValues.categoryMajor, editValues.categoryMinor),
+      inputMethod: "split",
+    });
     cancelEditing();
   }
 
@@ -137,6 +180,10 @@ export function ProductList({
             const productPlans = splitPlans.filter((plan) => plan.productEntryId === product.id);
             const doneCount = productPlans.filter((plan) => plan.status === "done").length;
             const isEditing = editingProductId === product.id && editValues !== null;
+            const selectedCategory = editValues
+              ? categories.find((category) => category.name === editValues.categoryMajor)
+              : undefined;
+            const subcategories = selectedCategory?.subcategories ?? [];
 
             return (
               <article key={product.id} className="item-card">
@@ -144,22 +191,18 @@ export function ProductList({
                   <div>
                     <p className="item-title">{product.officialItemName}</p>
                     <p className="item-subtitle">
-                      {product.storeName || "店舗名なし"} / {product.category}
+                      {product.storeName || "支出元なし"} / {formatProductCategory(product)}
                     </p>
                   </div>
                   <strong>{formatMoney(product.amountWithTax)}</strong>
                 </div>
                 <dl className="detail-grid">
                   <div>
-                    <dt>購入日</dt>
+                    <dt>日付</dt>
                     <dd>{formatDate(product.purchaseDate)}</dd>
                   </div>
                   <div>
-                    <dt>入力方法</dt>
-                    <dd>{product.inputMethod === "split" ? "分割入力" : "通常入力"}</dd>
-                  </div>
-                  <div>
-                    <dt>商品名</dt>
+                    <dt>内容</dt>
                     <dd>{product.receiptItemName}</dd>
                   </div>
                   {setting && (
@@ -168,6 +211,12 @@ export function ProductList({
                       <dd>
                         {formatMonth(setting.startMonth)}から{setting.months}ヶ月
                       </dd>
+                    </div>
+                  )}
+                  {!setting && (
+                    <div>
+                      <dt>分割予定</dt>
+                      <dd>未設定。編集保存すると分割予定を作成します。</dd>
                     </div>
                   )}
                   {product.memo && (
@@ -188,7 +237,7 @@ export function ProductList({
                 {isEditing && (
                   <form className="edit-form" onSubmit={(event) => handleEditSubmit(event, product)}>
                     <label className="field">
-                      <span>購入日</span>
+                      <span>日付</span>
                       <input
                         type="date"
                         value={editValues.purchaseDate}
@@ -196,7 +245,7 @@ export function ProductList({
                       />
                     </label>
                     <label className="field">
-                      <span>店舗名</span>
+                      <span>支出元</span>
                       <input
                         type="text"
                         value={editValues.storeName}
@@ -204,7 +253,7 @@ export function ProductList({
                       />
                     </label>
                     <label className="field">
-                      <span>商品名</span>
+                      <span>内容</span>
                       <input
                         type="text"
                         value={editValues.receiptItemName}
@@ -212,7 +261,7 @@ export function ProductList({
                       />
                     </label>
                     <label className="field">
-                      <span>正式な商品名</span>
+                      <span>正式な内容</span>
                       <input
                         type="text"
                         value={editValues.officialItemName}
@@ -228,14 +277,34 @@ export function ProductList({
                         onChange={(event) => updateEditValue("amountWithTax", event.target.value)}
                       />
                     </label>
-                    <label className="field">
-                      <span>分類</span>
-                      <input
-                        type="text"
-                        value={editValues.category}
-                        onChange={(event) => updateEditValue("category", event.target.value)}
-                      />
-                    </label>
+                    <div className="category-select-grid">
+                      <label className="field">
+                        <span>カテゴリ</span>
+                        <select
+                          value={editValues.categoryMajor}
+                          onChange={(event) => updateEditMajorCategory(event.target.value)}
+                        >
+                          {categories.map((category) => (
+                            <option key={category.id} value={category.name}>
+                              {category.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="field">
+                        <span>小分類</span>
+                        <select
+                          value={editValues.categoryMinor}
+                          onChange={(event) => updateEditMinorCategory(event.target.value)}
+                        >
+                          {subcategories.map((subcategory) => (
+                            <option key={subcategory.id} value={subcategory.name}>
+                              {subcategory.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
                     <label className="field">
                       <span>メモ</span>
                       <textarea
@@ -243,51 +312,28 @@ export function ProductList({
                         onChange={(event) => updateEditValue("splitMemo", event.target.value)}
                       />
                     </label>
-                    <fieldset className="choice-group">
-                      <legend>入力方法</legend>
-                      <label>
+                    <div className="split-panel">
+                      <label className="field">
+                        <span>分割月数</span>
                         <input
-                          type="radio"
-                          name={`edit-input-method-${product.id}`}
-                          checked={editValues.inputMethod === "normal"}
-                          onChange={() => updateEditValue("inputMethod", "normal")}
+                          type="number"
+                          min="2"
+                          step="1"
+                          value={editValues.splitMonths}
+                          onChange={(event) => updateEditValue("splitMonths", event.target.value)}
                         />
-                        通常入力
                       </label>
-                      <label>
+                      <label className="field">
+                        <span>開始月</span>
                         <input
-                          type="radio"
-                          name={`edit-input-method-${product.id}`}
-                          checked={editValues.inputMethod === "split"}
-                          onChange={() => updateEditValue("inputMethod", "split")}
+                          type="month"
+                          value={editValues.splitStartMonth}
+                          onChange={(event) =>
+                            updateEditValue("splitStartMonth", event.target.value)
+                          }
                         />
-                        分割入力
                       </label>
-                    </fieldset>
-                    {editValues.inputMethod === "split" && (
-                      <div className="split-panel">
-                        <label className="field">
-                          <span>分割月数</span>
-                          <input
-                            type="number"
-                            min="2"
-                            step="1"
-                            value={editValues.splitMonths}
-                            onChange={(event) => updateEditValue("splitMonths", event.target.value)}
-                          />
-                        </label>
-                        <label className="field">
-                          <span>開始月</span>
-                          <input
-                            type="month"
-                            value={editValues.splitStartMonth}
-                            onChange={(event) =>
-                              updateEditValue("splitStartMonth", event.target.value)
-                            }
-                          />
-                        </label>
-                      </div>
-                    )}
+                    </div>
                     {editError && <p className="error-message">{editError}</p>}
                     <div className="inline-actions">
                       <button type="submit" className="primary-button">
@@ -322,4 +368,32 @@ export function ProductList({
       )}
     </section>
   );
+}
+
+function resolveProductCategory(
+  product: ProductEntry,
+  categories: CategoryGroup[],
+  fallbackCategory: { major: string; minor: string },
+): { major: string; minor: string } {
+  const matchedGroup = categories.find((category) => category.name === product.categoryMajor);
+  const matchedSubcategory = matchedGroup?.subcategories.find(
+    (subcategory) => subcategory.name === product.categoryMinor,
+  );
+
+  if (matchedGroup && matchedSubcategory) {
+    return {
+      major: matchedGroup.name,
+      minor: matchedSubcategory.name,
+    };
+  }
+
+  return fallbackCategory;
+}
+
+function formatProductCategory(product: ProductEntry): string {
+  if (product.categoryMajor && product.categoryMinor) {
+    return formatCategory(product.categoryMajor, product.categoryMinor);
+  }
+
+  return product.category || "未分類";
 }

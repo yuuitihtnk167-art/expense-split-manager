@@ -24,6 +24,7 @@ body {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
 }
@@ -255,6 +256,7 @@ h2 {
 }
 
 .field input,
+.field select,
 .field textarea {
   width: 100%;
   min-height: 52px;
@@ -272,9 +274,16 @@ h2 {
 }
 
 .field input:focus,
+.field select:focus,
 .field textarea:focus {
   border-color: #31634f;
   outline: 3px solid rgba(49, 99, 79, 0.16);
+}
+
+.category-select-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
 }
 
 .choice-group {
@@ -436,6 +445,61 @@ h2 {
   line-height: 1.4;
 }
 
+.category-manager-list {
+  display: grid;
+  gap: 12px;
+}
+
+.category-manager-group {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #dce2dc;
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+
+.category-manager-heading {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.category-manager-heading strong {
+  color: #17211d;
+  font-size: 1rem;
+}
+
+.category-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.category-chip {
+  display: inline-flex;
+  min-height: 42px;
+  gap: 8px;
+  align-items: center;
+  padding: 6px;
+  border: 1px solid #cfd7d2;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.category-chip span {
+  padding: 0 4px;
+  color: #25312d;
+  font-weight: 700;
+}
+
+.category-chip .secondary-button,
+.category-chip .danger-button {
+  min-height: 34px;
+  padding: 6px 9px;
+}
+
 .empty-message,
 .error-message,
 .info-message {
@@ -477,6 +541,7 @@ h2 {
 
   .summary-strip,
   .choice-group,
+  .category-select-grid,
   .detail-grid {
     grid-template-columns: 1fr;
   }
@@ -501,5 +566,15 @@ h2 {
 
   .inline-actions {
     display: grid;
+  }
+
+  .category-manager-heading {
+    grid-template-columns: 1fr;
+  }
+
+  .category-chip {
+    display: grid;
+    width: 100%;
+    grid-template-columns: 1fr auto auto;
   }
 }

@@ -1,4 +1,5 @@
 import type { PlanStatus, ProductEntry, SplitPlan } from "../types";
+import { formatCategory } from "../categories";
 import { formatMoney } from "../utils/money";
 
 type PlanCardProps = {
@@ -13,7 +14,7 @@ export function PlanCard({ plan, product, onToggleStatus }: PlanCardProps) {
       <div className="item-card-main">
         <div>
           <p className="item-title">{product?.officialItemName ?? "削除済みの商品"}</p>
-          <p className="item-subtitle">{product?.category ?? "分類なし"}</p>
+          <p className="item-subtitle">{formatProductCategory(product)}</p>
         </div>
         <strong>{formatMoney(plan.allocatedAmount)}</strong>
       </div>
@@ -32,4 +33,16 @@ export function PlanCard({ plan, product, onToggleStatus }: PlanCardProps) {
       </div>
     </article>
   );
+}
+
+function formatProductCategory(product: ProductEntry | undefined): string {
+  if (!product) {
+    return "カテゴリなし";
+  }
+
+  if (product.categoryMajor && product.categoryMinor) {
+    return formatCategory(product.categoryMajor, product.categoryMinor);
+  }
+
+  return product.category || "カテゴリなし";
 }
