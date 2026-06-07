@@ -1,7 +1,7 @@
 import { FormEvent, useState } from "react";
 import type { CategoryGroup, ProductEntry, ProductFormValues, SplitPlan, SplitSetting } from "../types";
 import { formatCategory, getFallbackCategory } from "../categories";
-import { formatDate, formatMonth } from "../utils/date";
+import { addMonths, formatDate, formatMonth } from "../utils/date";
 import { formatMoney, parseMoney } from "../utils/money";
 import { CategoryPicker } from "./CategoryPicker";
 
@@ -204,7 +204,9 @@ export function ProductList({
                     <div>
                       <dt>配分</dt>
                       <dd>
-                        {formatMonth(setting.startMonth)}から{setting.months}ヶ月
+                        {formatMonth(setting.startMonth)}〜
+                        {formatMonth(addMonths(setting.startMonth, setting.months - 1))}
+                        （{setting.months}か月）
                       </dd>
                     </div>
                   )}
