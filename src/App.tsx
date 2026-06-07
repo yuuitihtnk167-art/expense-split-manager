@@ -23,7 +23,7 @@ import { createSplitPlans } from "./utils/split";
 
 const tabs = [
   { id: "today", label: "今月" },
-  { id: "input", label: "商品入力" },
+  { id: "input", label: "支出入力" },
   { id: "plans", label: "月別予定" },
   { id: "products", label: "商品一覧" },
   { id: "data", label: "データ管理" },
