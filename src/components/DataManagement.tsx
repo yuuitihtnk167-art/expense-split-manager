@@ -135,7 +135,7 @@ export function DataManagement({ data, onImportData }: DataManagementProps) {
         <div>
           <p className="item-title">JSONバックアップ</p>
           <p className="item-subtitle">
-            商品データ、分割設定、分割予定、カテゴリ設定をまとめて保存します。
+            登録した商品、分割予定、入力済み状態、カテゴリ情報をJSON形式でバックアップできます。機種変更やデータ復元の際に使用してください。
           </p>
         </div>
         <div className="data-actions">
