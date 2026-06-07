@@ -125,7 +125,10 @@ export function ProductForm({
 
       <form className="form-stack entry-form" onSubmit={handleSubmit}>
         <label className="field amount-field">
-          <span>金額（税込）</span>
+          <span className="field-label">
+            金額（税込）
+            <small className="required-badge">必須</small>
+          </span>
           <div className="money-input">
             <span>￥</span>
             <input
@@ -133,13 +136,16 @@ export function ProductForm({
               inputMode="numeric"
               value={values.amountWithTax}
               onChange={(event) => updateValue("amountWithTax", event.target.value)}
-              placeholder="50,000"
+              placeholder="0"
             />
           </div>
         </label>
 
         <div className="field">
-          <span>カテゴリ</span>
+          <span className="field-label">
+            カテゴリ
+            <small className="required-badge">必須</small>
+          </span>
           <button
             type="button"
             className="selection-button"
@@ -151,7 +157,10 @@ export function ProductForm({
         </div>
 
         <label className="field">
-          <span>日付</span>
+          <span className="field-label">
+            日付
+            <small className="required-badge">必須</small>
+          </span>
           <input
             type="date"
             value={values.purchaseDate}
@@ -160,22 +169,28 @@ export function ProductForm({
         </label>
 
         <label className="field">
-          <span>内容</span>
+          <span className="field-label">
+            内容
+            <small className="required-badge">必須</small>
+          </span>
           <input
             type="text"
             value={values.receiptItemName}
             onChange={(event) => updateValue("receiptItemName", event.target.value)}
-            placeholder="例：ノートパソコン"
+            placeholder="スマートフォン"
           />
         </label>
 
         <label className="field">
-          <span>支出元</span>
+          <span className="field-label">
+            支出元
+            <small className="required-badge">必須</small>
+          </span>
           <input
             type="text"
             value={values.storeName}
             onChange={(event) => updateValue("storeName", event.target.value)}
-            placeholder="例：家電ショップ"
+            placeholder="調整用"
           />
         </label>
 
@@ -184,14 +199,14 @@ export function ProductForm({
           <textarea
             value={values.splitMemo}
             onChange={(event) => updateValue("splitMemo", event.target.value)}
-            placeholder="例：生活コスト配分として入力"
+            placeholder="○○銀行引き落とし"
           />
         </label>
 
         <section className="split-panel">
           <div className="split-panel-title">
             <strong>分割設定</strong>
-            <span>必須</span>
+            <span className="required-badge">必須</span>
           </div>
 
           <div className="split-input-grid">
