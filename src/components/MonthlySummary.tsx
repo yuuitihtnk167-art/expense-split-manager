@@ -1,6 +1,5 @@
 import type { PlanStatus, ProductEntry, SplitPlan, SplitSetting } from "../types";
 import { getCurrentMonth, formatMonth } from "../utils/date";
-import { formatMoney } from "../utils/money";
 import { PlanCard } from "./PlanCard";
 
 type MonthlySummaryProps = {
@@ -40,26 +39,6 @@ export function MonthlySummary({
       remainder: isRemainderMonth ? remainder : 0,
     };
   });
-  const total = planAmounts.reduce(
-    (sum, item) => sum + item.monthlyAmount + item.remainder,
-    0,
-  );
-  const pendingTotal = planAmounts.reduce((sum, item) => {
-    const monthlyPending = item.plan.status === "pending" ? item.monthlyAmount : 0;
-    const remainderPending =
-      (item.plan.remainderStatus ?? "pending") === "pending" ? item.remainder : 0;
-
-    return sum + monthlyPending + remainderPending;
-  }, 0);
-  const pendingCount = planAmounts.reduce((count, item) => {
-    const monthlyPending = item.plan.status === "pending" ? 1 : 0;
-    const remainderPending =
-      item.remainder > 0 && (item.plan.remainderStatus ?? "pending") === "pending"
-        ? 1
-        : 0;
-
-    return count + monthlyPending + remainderPending;
-  }, 0);
   const visiblePlans = planAmounts
     .filter(
       (item) =>
@@ -74,17 +53,6 @@ export function MonthlySummary({
       <div className="screen-heading">
         <p className="eyebrow">今月の入力予定</p>
         <h2>{formatMonth(currentMonth)}の入力予定</h2>
-      </div>
-
-      <div className="summary-strip">
-        <div>
-          <span>未入力 {pendingCount}件</span>
-          <strong>{formatMoney(pendingTotal)}</strong>
-        </div>
-        <div>
-          <span>予定合計</span>
-          <strong>{formatMoney(total)}</strong>
-        </div>
       </div>
 
       {visiblePlans.length === 0 ? (

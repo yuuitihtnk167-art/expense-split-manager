@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import type { PlanStatus, ProductEntry, SplitPlan, SplitSetting } from "../types";
 import { getCurrentMonth, formatMonth } from "../utils/date";
-import { formatMoney } from "../utils/money";
 import { PlanCard } from "./PlanCard";
 
 type MonthlyPlansProps = {
@@ -26,21 +25,6 @@ export function MonthlyPlans({
     return Array.from(months).sort();
   }, [plans]);
   const monthPlans = plans.filter((plan) => plan.targetMonth === selectedMonth);
-  const total = monthPlans.reduce((sum, plan) => {
-    const product = productsById.get(plan.productEntryId);
-    const setting = settingsByProductId.get(plan.productEntryId);
-
-    if (!product || !setting) {
-      return sum + plan.allocatedAmount;
-    }
-
-    const monthlyAmount = Math.floor(product.amountWithTax / setting.months);
-    const remainder = product.amountWithTax - monthlyAmount * setting.months;
-    const remainderForMonth =
-      plan.targetMonth === setting.startMonth ? remainder : 0;
-
-    return sum + monthlyAmount + remainderForMonth;
-  }, 0);
 
   return (
     <section className="screen">
@@ -63,13 +47,6 @@ export function MonthlyPlans({
           ))}
         </datalist>
       </label>
-
-      <div className="summary-strip single">
-        <div>
-          <span>合計金額</span>
-          <strong>{formatMoney(total)}</strong>
-        </div>
-      </div>
 
       {monthPlans.length === 0 ? (
         <p className="empty-message">この月の分割入力予定はありません。</p>
