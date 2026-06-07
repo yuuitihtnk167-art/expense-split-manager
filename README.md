@@ -27,7 +27,6 @@ GitHubリポジトリ: `expense-split-manager`
 - 入力済み / 未入力の切り替え
 - 登録済み商品の一覧、編集、削除
 - JSONバックアップ / 復元
-- 商品一覧CSV / 分割予定CSVのエクスポート
 - GitHub Pages / PWA対応
 
 ## データの考え方

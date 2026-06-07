@@ -23,51 +23,6 @@ export function DataManagement({ data, onImportData }: DataManagementProps) {
     setMessage(`${filename} を作成しました。`);
   }
 
-  function handleExportProductsCsv(): void {
-    const filename = `expense-products-${createTimestamp()}.csv`;
-    const csv = createCsv([
-      ["日付", "支出元", "内容", "正式な内容", "金額（税込）", "大分類", "小分類", "メモ"],
-      ...data.productEntries.map((product) => [
-        product.purchaseDate,
-        product.storeName,
-        product.receiptItemName,
-        product.officialItemName,
-        String(product.amountWithTax),
-        product.categoryMajor ?? "",
-        product.categoryMinor ?? product.category,
-        product.memo ?? "",
-      ]),
-    ]);
-
-    downloadFile(filename, csv, "text/csv;charset=utf-8");
-    setMessage(`${filename} を作成しました。`);
-  }
-
-  function handleExportSchedulesCsv(): void {
-    const filename = `expense-schedules-${createTimestamp()}.csv`;
-    const productsById = new Map(
-      data.productEntries.map((product) => [product.id, product]),
-    );
-    const csv = createCsv([
-      ["対象月", "内容", "大分類", "小分類", "配分額", "状態"],
-      ...data.splitPlans.map((plan) => {
-        const product = productsById.get(plan.productEntryId);
-
-        return [
-          plan.targetMonth,
-          product?.officialItemName ?? "削除済みの商品",
-          product?.categoryMajor ?? "",
-          product?.categoryMinor ?? product?.category ?? "",
-          String(plan.allocatedAmount),
-          plan.status === "done" ? "入力済み" : "未入力",
-        ];
-      }),
-    ]);
-
-    downloadFile(filename, csv, "text/csv;charset=utf-8");
-    setMessage(`${filename} を作成しました。`);
-  }
-
   async function handleImport(event: ChangeEvent<HTMLInputElement>): Promise<void> {
     const file = event.target.files?.[0];
 
@@ -155,26 +110,6 @@ export function DataManagement({ data, onImportData }: DataManagementProps) {
         {message && <p className="info-message">{message}</p>}
       </article>
 
-      <article className="item-card">
-        <div>
-          <p className="item-title">CSVエクスポート</p>
-          <p className="item-subtitle">
-            Excelや家計簿ソフトで使いやすいUTF-8 BOM付きCSVを作成します。
-          </p>
-        </div>
-        <div className="data-actions">
-          <button type="button" className="secondary-button" onClick={handleExportProductsCsv}>
-            商品一覧CSV
-          </button>
-          <button type="button" className="secondary-button" onClick={handleExportSchedulesCsv}>
-            分割予定CSV
-          </button>
-        </div>
-      </article>
-
-      <p className="empty-message">
-        データはこのブラウザのlocalStorageに保存されています。ブラウザ変更やキャッシュ削除に備えて、定期的にバックアップしてください。
-      </p>
     </section>
   );
 }
@@ -201,18 +136,6 @@ function downloadFile(filename: string, content: string, type: string): void {
   anchor.click();
   document.body.removeChild(anchor);
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
-}
-
-function createCsv(rows: string[][]): string {
-  const body = rows.map((row) => row.map(escapeCsvValue).join(",")).join("\r\n");
-
-  return `\uFEFF${body}\r\n`;
-}
-
-function escapeCsvValue(value: string): string {
-  const escaped = value.replace(/"/g, '""');
-
-  return `"${escaped}"`;
 }
 
 function normalizeImportedData(value: unknown): AppData | null {
