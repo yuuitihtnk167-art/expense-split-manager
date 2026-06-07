@@ -320,7 +320,7 @@ export function ProductList({
                         <span>端数</span>
                         <strong>{formatMoney(editRemainder)}</strong>
                       </div>
-                      <small>端数は最初の入力額に加算します。</small>
+                      <small>端数は最初に加算してください。</small>
                     </div>
                     {editError && <p className="error-message">{editError}</p>}
                     <div className="inline-actions">
