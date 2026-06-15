@@ -89,7 +89,7 @@ describe("normalizeImportedAppData", () => {
 });
 
 describe("migrateAppData", () => {
-  it("updates version 2 data to version 3 without changing existing records", () => {
+  it("updates version 2 data to version 4 without changing existing records", () => {
     const data: AppData = {
       productEntries: [],
       splitSettings: [],
@@ -103,7 +103,97 @@ describe("migrateAppData", () => {
 
     expect(migratedData).toEqual({
       ...data,
-      migrationVersion: 3,
+      migrationVersion: 4,
     });
+  });
+
+  it("restores an incorrectly completed current period when the next month is pending", () => {
+    const data: AppData = {
+      productEntries: [],
+      splitSettings: [],
+      splitPlans: [
+        {
+          id: "current",
+          productEntryId: "product",
+          targetMonth: "2026-06",
+          allocatedAmount: 1000,
+          status: "done",
+          remainderStatus: "done",
+          memo: "",
+        },
+        {
+          id: "next",
+          productEntryId: "product",
+          targetMonth: "2026-07",
+          allocatedAmount: 1000,
+          status: "pending",
+          memo: "",
+        },
+      ],
+      categories: [],
+      settings: { closingDay: 15 },
+      migrationVersion: 3,
+    };
+
+    const migratedData = migrateAppData(data, "2026-06");
+
+    expect(migratedData.splitPlans[0]).toMatchObject({
+      status: "pending",
+      remainderStatus: "pending",
+    });
+  });
+
+  it("keeps a completed current period when there is no pending next-month counterpart", () => {
+    const data: AppData = {
+      productEntries: [],
+      splitSettings: [],
+      splitPlans: [
+        {
+          id: "current",
+          productEntryId: "product",
+          targetMonth: "2026-06",
+          allocatedAmount: 1000,
+          status: "done",
+          memo: "",
+        },
+      ],
+      categories: [],
+      settings: { closingDay: 15 },
+      migrationVersion: 3,
+    };
+
+    const migratedData = migrateAppData(data, "2026-06");
+
+    expect(migratedData.splitPlans[0].status).toBe("done");
+  });
+
+  it("does not repeat the current-period repair after version 4", () => {
+    const data: AppData = {
+      productEntries: [],
+      splitSettings: [],
+      splitPlans: [
+        {
+          id: "current",
+          productEntryId: "product",
+          targetMonth: "2026-06",
+          allocatedAmount: 1000,
+          status: "done",
+          memo: "",
+        },
+        {
+          id: "next",
+          productEntryId: "product",
+          targetMonth: "2026-07",
+          allocatedAmount: 1000,
+          status: "pending",
+          memo: "",
+        },
+      ],
+      categories: [],
+      settings: { closingDay: 15 },
+      migrationVersion: 4,
+    };
+
+    expect(migrateAppData(data, "2026-06")).toBe(data);
   });
 });
