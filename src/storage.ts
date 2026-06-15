@@ -1,10 +1,14 @@
 import type { AppData, CategoryGroup } from "./types";
 import { defaultCategories } from "./categories";
 import { defaultAppSettings, normalizeAppSettings } from "./settings";
-import { getCurrentMonth } from "./utils/date";
+import {
+  addMonths,
+  getDisplayMonthForDate,
+  getTodayDate,
+} from "./utils/date";
 
 const STORAGE_KEY = "receipt-split-manager:v1";
-const CURRENT_MIGRATION_VERSION = 3;
+const CURRENT_MIGRATION_VERSION = 4;
 
 export const emptyAppData: AppData = {
   productEntries: [],
@@ -97,13 +101,27 @@ export function normalizeImportedAppData(
 
 export function migrateAppData(
   data: AppData,
-  currentMonth = getCurrentMonth(),
+  currentMonth = getDisplayMonthForDate(
+    getTodayDate(),
+    data.settings.closingDay,
+  ),
 ): AppData {
   const migrationVersion = data.migrationVersion ?? 0;
 
   if (migrationVersion >= CURRENT_MIGRATION_VERSION) {
     return data;
   }
+
+  const nextMonth = addMonths(currentMonth, 1);
+  const productsPendingNextMonth = new Set(
+    data.splitPlans
+      .filter(
+        (plan) =>
+          plan.targetMonth === nextMonth &&
+          plan.status === "pending",
+      )
+      .map((plan) => plan.productEntryId),
+  );
 
   return {
     ...data,
@@ -116,17 +134,33 @@ export function migrateAppData(
         isPastMonth &&
         plan.remainderStatus !== undefined &&
         plan.remainderStatus !== "done";
+      const shouldRestoreCurrentStatus =
+        migrationVersion < 4 &&
+        plan.targetMonth === currentMonth &&
+        plan.status === "done" &&
+        productsPendingNextMonth.has(plan.productEntryId);
 
-      if (!shouldMigrateStatus && !shouldMigrateRemainderStatus) {
+      if (
+        !shouldMigrateStatus &&
+        !shouldMigrateRemainderStatus &&
+        !shouldRestoreCurrentStatus
+      ) {
         return plan;
       }
 
       return {
         ...plan,
-        status: shouldMigrateStatus ? ("done" as const) : plan.status,
-        remainderStatus: shouldMigrateRemainderStatus
-          ? ("done" as const)
-          : plan.remainderStatus,
+        status: shouldRestoreCurrentStatus
+          ? ("pending" as const)
+          : shouldMigrateStatus
+            ? ("done" as const)
+            : plan.status,
+        remainderStatus:
+          shouldRestoreCurrentStatus && plan.remainderStatus === "done"
+            ? ("pending" as const)
+            : shouldMigrateRemainderStatus
+              ? ("done" as const)
+              : plan.remainderStatus,
       };
     }),
     settings: normalizeAppSettings(data.settings),

@@ -20,6 +20,10 @@ import type {
 } from "./types";
 import { parseMoney } from "./utils/money";
 import { createSplitPlans } from "./utils/split";
+import {
+  getDisplayMonthForDate,
+  getTodayDate,
+} from "./utils/date";
 
 const tabs = [
   { id: "today", label: "入力予定" },
@@ -47,6 +51,10 @@ function App() {
   const settingsByProductId = useMemo(() => {
     return new Map(data.splitSettings.map((setting) => [setting.productEntryId, setting]));
   }, [data.splitSettings]);
+  const currentDisplayMonth = getDisplayMonthForDate(
+    getTodayDate(),
+    data.settings.closingDay,
+  );
 
   function updateData(nextData: AppData): void {
     setData(nextData);
@@ -86,6 +94,7 @@ function App() {
       months: splitSetting.months,
       startMonth: splitSetting.startMonth,
       memo: splitSetting.memo,
+      currentMonth: currentDisplayMonth,
     });
 
     updateData({
@@ -175,6 +184,7 @@ function App() {
       months: nextSplitSetting.months,
       startMonth: nextSplitSetting.startMonth,
       memo: nextSplitSetting.memo,
+      currentMonth: currentDisplayMonth,
     }).map((plan) => ({
       ...plan,
       status: doneMonths.has(plan.targetMonth) ? ("done" as const) : plan.status,
