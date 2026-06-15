@@ -1,12 +1,17 @@
 import { useMemo, useState } from "react";
 import type { PlanStatus, ProductEntry, SplitPlan, SplitSetting } from "../types";
-import { getCurrentMonth, formatMonth } from "../utils/date";
+import {
+  formatMonth,
+  getDisplayMonthForDate,
+  getTodayDate,
+} from "../utils/date";
 import { PlanCard } from "./PlanCard";
 
 type MonthlyPlansProps = {
   plans: SplitPlan[];
   productsById: Map<string, ProductEntry>;
   settingsByProductId: Map<string, SplitSetting>;
+  closingDay: number;
   onToggleStatus: (planId: string, status: PlanStatus) => void;
   onToggleRemainderStatus: (planId: string, status: PlanStatus) => void;
 };
@@ -15,15 +20,17 @@ export function MonthlyPlans({
   plans,
   productsById,
   settingsByProductId,
+  closingDay,
   onToggleStatus,
   onToggleRemainderStatus,
 }: MonthlyPlansProps) {
-  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
+  const initialMonth = getDisplayMonthForDate(getTodayDate(), closingDay);
+  const [selectedMonth, setSelectedMonth] = useState(initialMonth);
   const availableMonths = useMemo(() => {
     const months = new Set(plans.map((plan) => plan.targetMonth));
-    months.add(getCurrentMonth());
+    months.add(initialMonth);
     return Array.from(months).sort();
-  }, [plans]);
+  }, [initialMonth, plans]);
   const monthPlans = plans.filter((plan) => plan.targetMonth === selectedMonth);
 
   return (

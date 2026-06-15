@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getActualClosingDate } from "./date";
+import { getActualClosingDate, getDisplayMonthForDate } from "./date";
 
 describe("getActualClosingDate", () => {
   it("returns the configured weekday when it is not a holiday", () => {
@@ -41,5 +41,29 @@ describe("getActualClosingDate", () => {
     expect(() => getActualClosingDate("2026-06", 32)).toThrow(
       "Invalid closing day",
     );
+  });
+});
+
+describe("getDisplayMonthForDate", () => {
+  it("uses the previous month before the actual closing date", () => {
+    expect(getDisplayMonthForDate("2026-06-14", 15)).toBe("2026-05");
+  });
+
+  it("switches to the current month on the actual closing date", () => {
+    expect(getDisplayMonthForDate("2026-06-15", 15)).toBe("2026-06");
+  });
+
+  it("switches on the adjusted closing date when a holiday follows a weekend", () => {
+    expect(getDisplayMonthForDate("2026-11-19", 23)).toBe("2026-10");
+    expect(getDisplayMonthForDate("2026-11-20", 23)).toBe("2026-11");
+  });
+
+  it("handles an adjusted closing date that falls in the previous month", () => {
+    expect(getDisplayMonthForDate("2020-12-30", 3)).toBe("2020-12");
+    expect(getDisplayMonthForDate("2020-12-31", 3)).toBe("2021-01");
+  });
+
+  it("handles year boundaries before the closing date", () => {
+    expect(getDisplayMonthForDate("2026-01-14", 15)).toBe("2025-12");
   });
 });

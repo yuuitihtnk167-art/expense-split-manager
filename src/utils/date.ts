@@ -53,6 +53,24 @@ export function getActualClosingDate(month: string, closingDay: number): string 
   return formatLocalDate(date);
 }
 
+export function getDisplayMonthForDate(
+  date: string,
+  closingDay: number,
+): string {
+  const currentMonth = parseDate(date).slice(0, 2).join("-");
+  const nextMonth = addMonths(currentMonth, 1);
+
+  if (date >= getActualClosingDate(nextMonth, closingDay)) {
+    return nextMonth;
+  }
+
+  if (date >= getActualClosingDate(currentMonth, closingDay)) {
+    return currentMonth;
+  }
+
+  return addMonths(currentMonth, -1);
+}
+
 function parseMonth(month: string): [number, number] {
   const match = /^(\d{4})-(\d{2})$/.exec(month);
 
@@ -68,6 +86,23 @@ function parseMonth(month: string): [number, number] {
   }
 
   return [year, monthNumber];
+}
+
+function parseDate(date: string): [string, string, string] {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+
+  if (!match) {
+    throw new Error(`Invalid date: ${date}`);
+  }
+
+  const [, year, month, day] = match;
+  const parsedDate = new Date(Number(year), Number(month) - 1, Number(day));
+
+  if (formatLocalDate(parsedDate) !== date) {
+    throw new Error(`Invalid date: ${date}`);
+  }
+
+  return [year, month, day];
 }
 
 function normalizeClosingDay(closingDay: number): number {
