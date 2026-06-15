@@ -22,7 +22,7 @@ import { parseMoney } from "./utils/money";
 import { createSplitPlans } from "./utils/split";
 
 const tabs = [
-  { id: "today", label: "今月" },
+  { id: "today", label: "入力予定" },
   { id: "input", label: "支出入力" },
   { id: "plans", label: "月別予定" },
   { id: "products", label: "商品一覧" },
@@ -236,6 +236,7 @@ function App() {
             plans={data.splitPlans}
             productsById={productsById}
             settingsByProductId={settingsByProductId}
+            closingDay={data.settings.closingDay}
             onToggleStatus={handleTogglePlanStatus}
             onToggleRemainderStatus={handleToggleRemainderStatus}
           />
@@ -254,6 +255,7 @@ function App() {
             plans={data.splitPlans}
             productsById={productsById}
             settingsByProductId={settingsByProductId}
+            closingDay={data.settings.closingDay}
             onToggleStatus={handleTogglePlanStatus}
             onToggleRemainderStatus={handleToggleRemainderStatus}
           />
