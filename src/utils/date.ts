@@ -1,3 +1,5 @@
+import holidayJp from "@holiday-jp/holiday_jp";
+
 export function getTodayDate(): string {
   const date = new Date();
   const year = date.getFullYear();
@@ -36,4 +38,55 @@ export function formatDate(date: string): string {
 
   const [year, month, day] = date.split("-");
   return `${year}年${Number(month)}月${Number(day)}日`;
+}
+
+export function getActualClosingDate(month: string, closingDay: number): string {
+  const [year, monthNumber] = parseMonth(month);
+  const lastDay = new Date(year, monthNumber, 0).getDate();
+  const baseDay = Math.min(normalizeClosingDay(closingDay), lastDay);
+  const date = new Date(year, monthNumber - 1, baseDay);
+
+  while (isWeekend(date) || holidayJp.isHoliday(formatLocalDate(date))) {
+    date.setDate(date.getDate() - 1);
+  }
+
+  return formatLocalDate(date);
+}
+
+function parseMonth(month: string): [number, number] {
+  const match = /^(\d{4})-(\d{2})$/.exec(month);
+
+  if (!match) {
+    throw new Error(`Invalid month: ${month}`);
+  }
+
+  const year = Number(match[1]);
+  const monthNumber = Number(match[2]);
+
+  if (monthNumber < 1 || monthNumber > 12) {
+    throw new Error(`Invalid month: ${month}`);
+  }
+
+  return [year, monthNumber];
+}
+
+function normalizeClosingDay(closingDay: number): number {
+  if (!Number.isInteger(closingDay) || closingDay < 1 || closingDay > 31) {
+    throw new Error(`Invalid closing day: ${closingDay}`);
+  }
+
+  return closingDay;
+}
+
+function isWeekend(date: Date): boolean {
+  const dayOfWeek = date.getDay();
+  return dayOfWeek === 0 || dayOfWeek === 6;
+}
+
+function formatLocalDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }

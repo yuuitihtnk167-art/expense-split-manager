@@ -47,11 +47,16 @@ export type SplitPlan = {
   memo: string;
 };
 
+export type AppSettings = {
+  closingDay: number;
+};
+
 export type AppData = {
   productEntries: ProductEntry[];
   splitSettings: SplitSetting[];
   splitPlans: SplitPlan[];
   categories: CategoryGroup[];
+  settings: AppSettings;
   migrationVersion?: number;
 };
 

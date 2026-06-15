@@ -26,7 +26,7 @@ const tabs = [
   { id: "input", label: "支出入力" },
   { id: "plans", label: "月別予定" },
   { id: "products", label: "商品一覧" },
-  { id: "data", label: "データ管理" },
+  { id: "data", label: "設定" },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
@@ -93,6 +93,7 @@ function App() {
       splitSettings: [splitSetting, ...data.splitSettings],
       splitPlans: [...splitPlans, ...data.splitPlans],
       categories: data.categories,
+      settings: data.settings,
       migrationVersion: data.migrationVersion,
     });
 
@@ -195,6 +196,7 @@ function App() {
         ...data.splitPlans.filter((plan) => plan.productEntryId !== productId),
       ],
       categories: data.categories,
+      settings: data.settings,
       migrationVersion: data.migrationVersion,
     });
   }
@@ -207,6 +209,13 @@ function App() {
     updateData({
       ...data,
       categories,
+    });
+  }
+
+  function handleUpdateSettings(settings: AppData["settings"]): void {
+    updateData({
+      ...data,
+      settings,
     });
   }
 
@@ -266,6 +275,7 @@ function App() {
           <DataManagement
             data={data}
             onImportData={handleImportData}
+            onUpdateSettings={handleUpdateSettings}
           />
         )}
       </main>

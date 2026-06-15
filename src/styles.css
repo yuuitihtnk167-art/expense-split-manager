@@ -496,6 +496,32 @@ main {
   gap: 10px;
 }
 
+.closing-day-field {
+  max-width: 240px;
+}
+
+.setting-status {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 16px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfaf8;
+}
+
+.setting-status span {
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.setting-status strong {
+  color: var(--teal-dark);
+  text-align: right;
+}
+
 .inline-actions {
   display: flex;
   flex-wrap: wrap;
