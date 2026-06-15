@@ -53,7 +53,7 @@ export function DataManagement({
     try {
       const text = await file.text();
       const parsed = JSON.parse(text) as unknown;
-      const importedData = normalizeImportedAppData(parsed);
+      const importedData = normalizeImportedAppData(parsed, data.settings);
 
       if (!importedData) {
         setMessage("読み込めないJSONです。バックアップファイルを確認してください。");

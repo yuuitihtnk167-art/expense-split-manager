@@ -35,7 +35,19 @@ describe("local storage", () => {
 });
 
 describe("normalizeImportedAppData", () => {
-  it("adds the default closing day to an old backup", () => {
+  it("uses the provided closing day for an old backup", () => {
+    const importedData = normalizeImportedAppData({
+      productEntries: [],
+      splitSettings: [],
+      splitPlans: [],
+      categories: [],
+      migrationVersion: 2,
+    }, { closingDay: 15 });
+
+    expect(importedData?.settings).toEqual({ closingDay: 15 });
+  });
+
+  it("uses the default closing day when no fallback is provided", () => {
     const importedData = normalizeImportedAppData({
       productEntries: [],
       splitSettings: [],

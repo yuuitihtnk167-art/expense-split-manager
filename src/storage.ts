@@ -58,7 +58,10 @@ export function saveAppData(data: AppData): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-export function normalizeImportedAppData(value: unknown): AppData | null {
+export function normalizeImportedAppData(
+  value: unknown,
+  fallbackSettings = defaultAppSettings,
+): AppData | null {
   if (!isObject(value)) {
     return null;
   }
@@ -81,7 +84,10 @@ export function normalizeImportedAppData(value: unknown): AppData | null {
       Array.isArray(maybeData.categories) && maybeData.categories.length > 0
         ? (maybeData.categories as CategoryGroup[])
         : defaultCategories,
-    settings: normalizeAppSettings(maybeData.settings),
+    settings:
+      "settings" in maybeData
+        ? normalizeAppSettings(maybeData.settings)
+        : fallbackSettings,
     migrationVersion:
       typeof maybeData.migrationVersion === "number"
         ? maybeData.migrationVersion
