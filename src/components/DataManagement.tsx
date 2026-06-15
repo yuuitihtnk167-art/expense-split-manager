@@ -1,19 +1,39 @@
 import { ChangeEvent, useRef, useState } from "react";
-import { defaultCategories } from "../categories";
+import { normalizeImportedAppData } from "../storage";
 import type { AppData } from "../types";
-import type { CategoryGroup } from "../types";
+import {
+  formatDate,
+  getActualClosingDate,
+  getCurrentMonth,
+} from "../utils/date";
 
 type DataManagementProps = {
   data: AppData;
   onImportData: (data: AppData) => void;
+  onUpdateSettings: (settings: AppData["settings"]) => void;
 };
 
-export function DataManagement({ data, onImportData }: DataManagementProps) {
+export function DataManagement({
+  data,
+  onImportData,
+  onUpdateSettings,
+}: DataManagementProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [message, setMessage] = useState("");
   const totalPlans = data.splitPlans.length;
   const totalProducts = data.productEntries.length;
   const totalCategories = data.categories.length;
+  const actualClosingDate = getActualClosingDate(
+    getCurrentMonth(),
+    data.settings.closingDay,
+  );
+
+  function handleClosingDayChange(event: ChangeEvent<HTMLSelectElement>): void {
+    onUpdateSettings({
+      ...data.settings,
+      closingDay: Number(event.target.value),
+    });
+  }
 
   function handleExport(): void {
     const filename = `expense-split-manager-backup-${createTimestamp()}.json`;
@@ -33,7 +53,7 @@ export function DataManagement({ data, onImportData }: DataManagementProps) {
     try {
       const text = await file.text();
       const parsed = JSON.parse(text) as unknown;
-      const importedData = normalizeImportedData(parsed);
+      const importedData = normalizeImportedAppData(parsed);
 
       if (!importedData) {
         setMessage("読み込めないJSONです。バックアップファイルを確認してください。");
@@ -63,9 +83,38 @@ export function DataManagement({ data, onImportData }: DataManagementProps) {
   return (
     <section className="screen">
       <div className="screen-heading">
-        <p className="eyebrow">データ管理</p>
-        <h2>バックアップと復元</h2>
+        <p className="eyebrow">設定</p>
+        <h2>締め日とデータ管理</h2>
       </div>
+
+      <article className="item-card">
+        <div>
+          <p className="item-title">締め日設定</p>
+          <p className="item-subtitle">
+            土曜日・日曜日・日本の祝日に当たる場合は、直前の平日を実際の締め日として使用します。
+          </p>
+        </div>
+        <label className="field closing-day-field">
+          <span>基準締め日</span>
+          <select
+            value={data.settings.closingDay}
+            onChange={handleClosingDayChange}
+          >
+            {Array.from({ length: 31 }, (_, index) => index + 1).map((day) => (
+              <option key={day} value={day}>
+                {day}日
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="setting-status">
+          <span>現在の設定</span>
+          <strong>{data.settings.closingDay}日</strong>
+          <span>今月の実際の締め日</span>
+          <strong>{formatDate(actualClosingDate)}</strong>
+        </div>
+        <p className="item-subtitle">選択すると自動的に保存されます。</p>
+      </article>
 
       <div className="summary-strip">
         <div>
@@ -90,7 +139,7 @@ export function DataManagement({ data, onImportData }: DataManagementProps) {
         <div>
           <p className="item-title">JSONバックアップ</p>
           <p className="item-subtitle">
-            登録した商品、分割予定、入力済み状態、カテゴリ情報をJSON形式でバックアップできます。機種変更やデータ復元の際に使用してください。
+            登録した商品、分割予定、入力済み状態、カテゴリ情報、締め日設定をJSON形式でバックアップできます。機種変更やデータ復元の際に使用してください。
           </p>
         </div>
         <div className="data-actions">
@@ -136,38 +185,4 @@ function downloadFile(filename: string, content: string, type: string): void {
   anchor.click();
   document.body.removeChild(anchor);
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
-}
-
-function normalizeImportedData(value: unknown): AppData | null {
-  if (!isObject(value)) {
-    return null;
-  }
-
-  const maybeData = "data" in value && isObject(value.data) ? value.data : value;
-
-  if (
-    !Array.isArray(maybeData.productEntries) ||
-    !Array.isArray(maybeData.splitSettings) ||
-    !Array.isArray(maybeData.splitPlans)
-  ) {
-    return null;
-  }
-
-  return {
-    productEntries: maybeData.productEntries,
-    splitSettings: maybeData.splitSettings,
-    splitPlans: maybeData.splitPlans,
-    categories:
-      Array.isArray(maybeData.categories) && maybeData.categories.length > 0
-        ? (maybeData.categories as CategoryGroup[])
-        : defaultCategories,
-    migrationVersion:
-      typeof maybeData.migrationVersion === "number"
-        ? maybeData.migrationVersion
-        : undefined,
-  } as AppData;
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
 }
